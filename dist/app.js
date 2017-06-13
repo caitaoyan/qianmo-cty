@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "dist/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -82,7 +82,7 @@
  * 整张表-Sheet的属性默认值
  *
  */
-var SheetConfig = {
+var WSConfig = {
 	height: 600,
 	width: 1030,
 	isMouseDown:false,
@@ -93,9 +93,9 @@ var SheetConfig = {
  * 表头-SheetTool的属性默认值
  *
  */
-var SheetToolConfig = {
+var ToolConfig = {
 	height: 40,
-	width: SheetConfig.width
+	width: WSConfig.width
 }
 
 /**
@@ -111,14 +111,14 @@ var CellConfig = {
  * 表单-SheetGrid的属性默认值
  *
  */
-var SheetGridConfig = {
-	height: SheetConfig.height - SheetToolConfig.height,
-	width: SheetConfig.width,
+var SheetConfig = {
+	height: WSConfig.height - ToolConfig.height,
+	width: WSConfig.width,
 	headWidth: 30,
 	headHeight: 25,
 
-	rowNum: (SheetConfig.height - SheetToolConfig.height-30)/CellConfig.height,
-	colNum: (SheetConfig.width-30)/CellConfig.width
+	rowNum: (WSConfig.height - ToolConfig.height-30)/CellConfig.height,
+	colNum: (WSConfig.width-30)/CellConfig.width
 }
 var keyboardTables = {
 
@@ -203,14 +203,70 @@ var keyboardTables = {
  * 输出模块
  *
  */
+module.exports.WSConfig = WSConfig
+module.exports.ToolConfig = ToolConfig
 module.exports.SheetConfig = SheetConfig
-module.exports.SheetToolConfig = SheetToolConfig
-module.exports.SheetGridConfig = SheetGridConfig
 module.exports.CellConfig = CellConfig
 
 
 /***/ }),
 /* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var WSManager = function () {}
+
+WSManager.prototype.init = function (parentNode) {
+
+    //实例化初始化Tool对象
+    var ToolModule = __webpack_require__(8)
+    var Tool=ToolModule.Tool
+    var tool=new Tool()
+
+    //实例化初始化UndoStack对象
+    var UndoStackModule =__webpack_require__(10)
+    var UndoStack = UndoStackModule.UndoStack
+    var undoStack = new UndoStack()
+
+    //实例化初始化Sheet对象
+    var SheetModule = __webpack_require__(4)
+    var Sheet =SheetModule.Sheet
+    var sheet=new Sheet(undoStack)
+
+    //实例化初始化Workspace对象
+    var WorkspaceModule = __webpack_require__(12)
+    var Workspace = WorkspaceModule.Workspace
+    this.workspace=new Workspace(tool,sheet)
+
+    //实例化初始化WSRender对象
+    var WSRenderModule = __webpack_require__(11)
+    var WSRender = WSRenderModule.WSRender
+    var wsRender=new WSRender(this,parentNode)
+
+    wsRender.init()
+}
+
+module.exports.WSManager = WSManager
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * Created by Ian on 17/6/5.
+ */
+
+var WSManagerModule = __webpack_require__(1)
+var WSManager = WSManagerModule.WSManager
+var wsManager=new WSManager()
+
+var parentNode = document.getElementById('QianMoApp')
+
+wsManager.init(parentNode)
+
+
+/***/ }),
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -234,101 +290,137 @@ var Cell = function (coord) {
 module.exports.Cell = Cell
 
 /***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Created by Ian on 17/6/7.
- */
-
-
-var Controller = function () {}
-
-Controller.prototype.init = function (parentNode) {
-
-	//实例化初始化需要的对象
-
-	var sheetGridModule = __webpack_require__(7)
-	var sheetToolModule = __webpack_require__(8)
-	var sheetModule = __webpack_require__(6)
-	var renderModule = __webpack_require__(5)
-	var undoStackModule = __webpack_require__(9)
-
-	var SheetGrid = sheetGridModule.SheetGrid
-	var SheetTool = sheetToolModule.SheetTool
-	var Sheet = sheetModule.Sheet
-	var Render = renderModule.Render
-	var UndoStack = undoStackModule.UndoStack
-
-	this.sheetGrid = new SheetGrid()
-	this.sheetTool = new SheetTool()
-	this.undoStack = new UndoStack()
-	this.sheet = new Sheet(this.sheetTool, this.sheetGrid,this.undoStack)
-	this.render = new Render()
-
-	this.render.renderSheet(this.sheet, parentNode)
-}
-
-module.exports.Controller = Controller
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Created by Ian on 17/6/5.
- */
-
-var controllerModule = __webpack_require__(2)
-var Controller = controllerModule.Controller
-
-var parentNode = document.getElementById('QianMoApp')
-
-var controller = new Controller()
-controller.init(parentNode)
-
-/***/ }),
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
- * Created by ASUS on 2017/6/8.
+ * 表格对象
  */
-//
-var config = __webpack_require__(0)
-var CellModule = __webpack_require__(1)
-var Cell=CellModule.Cell
-var EventHandle = function () {
-    this.firstCell = null
-    this.lastCell = null
+
+
+var configModule = __webpack_require__(0)
+
+var sheetConfig = configModule.SheetConfig
+
+var Sheet = function (UndoStack) {
+    this.height = sheetConfig.height
+    this.width = sheetConfig.width
+
+    this.headWidth = sheetConfig.headWidth
+    this.headHeight = sheetConfig.headHeight
+
+    this.rowNum = sheetConfig.rowNum
+    this.colNum = sheetConfig.colNum
+
+    this.cells = {}
+    this.UndoStack = UndoStack
 }
 
-EventHandle.prototype.buttonClick = function(str){
-    alert(str)
+module.exports.Sheet = Sheet
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var config = __webpack_require__(0)
+var SheetEventHandelModule=__webpack_require__(6)
+var SheetEventHandel = SheetEventHandelModule.SheetEventHandel
+var sheetEventHandel=null
+
+var SheetBindEvent = function (sheet) {
+    this.sheet=sheet
+    sheetEventHandel=new SheetEventHandel(sheet)
 }
-EventHandle.prototype.mouseDown = function(element){
+
+SheetBindEvent.prototype.init=function(rowTD,rowInput){
+
+    rowTD.onmousedown = function(){
+        sheetEventHandel.mouseDown(this)
+    }
+    window.onmousedown=function(){
+        sheetEventHandel.setCellBackgroundColor('transparent')
+    }
+    rowTD.onmouseup = function(){
+        sheetEventHandel.mouseUp(this)
+    }
+    window.onmouseup = function(){
+        config.WSConfig.isMouseDown=false
+    }
+    rowTD.onmousemove = function(){
+        if(config.WSConfig.isMouseDown) {
+            sheetEventHandel.mouseMove(this)
+        }
+    }
+    rowInput.ondblclick = function () {
+        this.style.color='#111'
+        this.style.background='#efe'
+    }
+    rowInput.onfocus = function () {
+        this.parentNode.style.backgroundColor = '#69f'
+    }
+    rowInput.onblur=function () {
+        sheetEventHandel.mouseBlur(this)
+    }
+    rowInput.onkeydown=function (event) {
+        sheetEventHandel.keyDown(this,event)
+    }
+}
+module.exports.SheetBindEvent=SheetBindEvent
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var config = __webpack_require__(0)
+var CellModule = __webpack_require__(3)
+var Cell=CellModule.Cell
+
+var SheetEventHandel = function (sheet) {
+    this.firstCell = null
+    this.lastCell = null
+    this.sheet=sheet
+}
+
+SheetEventHandel.prototype.mouseDown = function(element){
     this.setCellBackgroundColor('transparent')
     if(element.firstChild.id){
         this.firstCell = element.firstChild
-        config.SheetConfig.isMouseDown=true
+        config.WSConfig.isMouseDown=true
     }
 }
-EventHandle.prototype.mouseMove = function(element){
+
+SheetEventHandel.prototype.mouseMove = function(element){
     this.setCellBackgroundColor('transparent')
     if(element.firstChild.id){
         this.lastCell=element.firstChild
         this.setCellBackgroundColor('#69f')
     }
 }
-EventHandle.prototype.mouseUp = function(element,sheet){
+SheetEventHandel.prototype.mouseUp = function(element){
     if(element.firstChild.id){
         this.lastCell = element.firstChild
-        sheet.range=this.firstCell.id+':'+this.lastCell.id
+        this.sheet.range=this.firstCell.id+':'+this.lastCell.id
         this.setCellBackgroundColor('#69f')
     }
 }
-EventHandle.prototype.setCellBackgroundColor=function(backgroundColor){
+SheetEventHandel.prototype.mouseBlur=function(element){
+    element.style.color='transparent'
+    element.style.background='transparent'
+    if(config.WSConfig.isKeyDown){
+        var value=element.value
+        if(element.nextSibling.innerHTML==''&&value!=''){
+            var command = 'set '+ element.id + ' ' + value
+            var type = 'set'
+            this.sheet.UndoStack.pushCommand(command,type)
+        }
+        element.nextSibling.innerHTML=value
+    }
+    element.parentNode.style.backgroundColor = 'transparent'
+}
+
+SheetEventHandel.prototype.setCellBackgroundColor=function(backgroundColor){
     var cells=this.getColAndRow(this.firstCell,this.lastCell)
+    // console.log(this.lastCell);
     if(cells!=null) {
         for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++){
             for(var j=cells.firstCellRow;j<=cells.lastCellRow;j++){
@@ -338,7 +430,7 @@ EventHandle.prototype.setCellBackgroundColor=function(backgroundColor){
         }
     }
 }
-EventHandle.prototype.getColAndRow=function(firstCell,lastCell){
+SheetEventHandel.prototype.getColAndRow=function(firstCell,lastCell){
     var result=null
     if(firstCell&&firstCell.id&&lastCell&&lastCell.id) {
         result=new Object()
@@ -360,7 +452,8 @@ EventHandle.prototype.getColAndRow=function(firstCell,lastCell){
     }
     return result
 }
-EventHandle.prototype.keyDown = function(element,event,sheet){
+
+SheetEventHandel.prototype.keyDown = function(element,event){
     var col=element.id.split('_')[0]
     var row=element.id.split('_')[1]
 
@@ -388,14 +481,14 @@ EventHandle.prototype.keyDown = function(element,event,sheet){
         case 18://alt
             break
         case 67://ctrl+c
-             sheet.copiedfrom=sheet.range
-            var command = 'copy ' + sheet.copiedfrom + ' formulas'
+            this.sheet.copiedfrom=this.sheet.range
+            var command = 'copy ' + this.sheet.copiedfrom + ' formulas'
             var type = 'copy'
-            sheet.UndoStack.setStack(command,type)
+            this.sheet.UndoStack.pushCommand(command,type)
             break
         case 86://ctrl+v
-            var firstCell=sheet.copiedfrom.split(':')[0]
-            var lastCell=sheet.copiedfrom.split(':')[1]
+            var firstCell=this.sheet.copiedfrom.split(':')[0]
+            var lastCell=this.sheet.copiedfrom.split(':')[1]
             var cells=this.getColAndRow(document.getElementById(firstCell),
                 document.getElementById(lastCell))
             if(cells!=null) {
@@ -413,7 +506,7 @@ EventHandle.prototype.keyDown = function(element,event,sheet){
                             eleNew.nextSibling.innerHTML=eleOld.nextSibling.innerHTML
                             var cell=new Cell()
                             cell.value=eleOld.nextSibling.innerHTML
-                            sheet.SheetGrid.cells[eleNew.id]=cell
+                            this.sheet.cells[eleNew.id]=cell
                         }
                         rowCount++
 
@@ -422,26 +515,25 @@ EventHandle.prototype.keyDown = function(element,event,sheet){
                 }
                 var command = 'past ' + element.id + ' formulas'
                 var type = 'past'
-                sheet.UndoStack.setStack(command,type)
+                this.sheet.UndoStack.pushCommand(command,type)
             }
-            config.SheetConfig.isKeyDown=false
+            config.WSConfig.isKeyDown=false
             break
         default:
             var cell=new Cell()
             cell.value=element.value
-            sheet.SheetGrid.cells[element.id]=cell
+            this.sheet.cells[element.id]=cell
             element.style.color='#111'
             element.style.background='#efe'
             break
     }
-    console.log(sheet);
 }
 
 
-module.exports.EventHandle = EventHandle
+module.exports.SheetEventHandel = SheetEventHandel
 
 /***/ }),
-/* 5 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -463,54 +555,20 @@ module.exports.EventHandle = EventHandle
  * 希望不要动
  */
 var config = __webpack_require__(0)
-var EventHandleModule = __webpack_require__(4)
-var EventHandle = EventHandleModule.EventHandle
-var eventHandle = new EventHandle()
-var CellModule = __webpack_require__(1)
-var Cell=CellModule.Cell
 
-var Render = function () {}
+var SheetRender = function (sheet) {
+	this.sheet=sheet
+}
 
-Render.prototype.renderSheet = function (sheet, parentNode) {
-	var sheetDiv = document.createElement('div')
+SheetRender.prototype.init = function (sheetDiv) {
 
-	sheetDiv.style.width = sheet.width + 'px'
-	sheetDiv.style.height = sheet.height + 'px'
+	var sheetTable = document.createElement('table')
+    sheetDiv.appendChild(sheetTable)
 
-	parentNode.appendChild(sheetDiv)
+	sheetTable.style.width = this.sheet.width + 'px'
+	sheetTable.style.height = this.sheet.height + 'px'
 
-	var sheetTool = sheet.SheetTool
-	// console.log(sheet)
-	var sheetToolDiv = document.createElement('div')
-
-	sheetToolDiv.style.width = sheetTool.width + 'px'
-	sheetToolDiv.style.height = sheetTool.height + 'px'
-	sheetToolDiv.style.backgroundColor = '#aaaaaa'
-	//sheetToolDiv.innerHTML = "&#xe900;&#xe901;&#xe14d;&#xe14e;&#xe14f;"
-    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f"]
-
-	html.forEach(function(innerhtml){
-	    var buttonDiv = document.createElement('div')
-		buttonDiv.style.display = "inline"
-        buttonDiv.innerHTML=innerhtml
-
-        buttonDiv.onclick = function(){
-            eventHandle.buttonClick(innerhtml)
-        }
-	    sheetToolDiv.appendChild(buttonDiv)
-    })
-
-
-	sheetDiv.appendChild(sheetToolDiv)
-
-	var sheetGrid = sheet.SheetGrid
-	var sheetGridTable = document.createElement('table')
-	sheetDiv.appendChild(sheetGridTable)
-	sheetGridTable.style.width = sheetGrid.width + 'px'
-	sheetGridTable.style.height = sheetGrid.height + 'px'
-
-	fillGrid(sheet, sheetGridTable)
-
+	renderSheet(this.sheet, sheetTable)
 }
 
 /**
@@ -527,41 +585,41 @@ Render.prototype.renderSheet = function (sheet, parentNode) {
  * @param rowNum
  * @param colNum
  */
-function createModel(rowNum, colNum) {
-	var sheetGridModel =  []
+function createHeader(rowNum, colNum) {
+	var gridHeader =  []
 	for(var a=0;a<rowNum+1;a++){
-		sheetGridModel[a] = []
+        gridHeader[a] = []
 
 		for(var b=0;b<colNum+1;b++){
-			sheetGridModel[a][b] = null
+            gridHeader[a][b] = null
 		}
 	}
 	var startString = "A"
 
 	for(var i=1; i<colNum+1; i++){
-		sheetGridModel[0][i] = String.fromCharCode(startString.charCodeAt(0) + i - 1)
+        gridHeader[0][i] = String.fromCharCode(startString.charCodeAt(0) + i - 1)
 	}
 
 	for(var j=1; j<rowNum+1; j++){
-		sheetGridModel[j][0] = j
+        gridHeader[j][0] = j
 	}
 
-	return sheetGridModel
+	return gridHeader
 }
 
-function fillGrid(sheet, sheetGridTable) {
-	var sheetGridModel = createModel(sheet.SheetGrid.rowNum,  sheet.SheetGrid.colNum)
+function renderSheet(sheet, sheetTable) {
+	var gridHeader = createHeader(sheet.rowNum,  sheet.colNum)
 	var cellHeight = config.CellConfig.height
 	var cellWidth = config.CellConfig.width
-	var	headWidth = config.SheetGridConfig.headWidth
-	var	headHeight = config.SheetGridConfig.headHeight
+	var	headWidth = config.SheetConfig.headWidth
+	var	headHeight = config.SheetConfig.headHeight
 
-	var rowNum = sheetGridModel.length
-	var colNum = sheetGridModel[0].length
+	var rowNum = gridHeader.length
+	var colNum = gridHeader[0].length
 
 
 	var rowHead = document.createElement('tr')
-	sheetGridTable.appendChild(rowHead)
+	sheetTable.appendChild(rowHead)
 
 	for(var i=0;i<colNum;i++){
 		var rowHeadTH  = document.createElement('th')
@@ -581,174 +639,107 @@ function fillGrid(sheet, sheetGridTable) {
 			rowHeadDiv.style.height = headHeight-2 + 'px'
 			rowHeadDiv.style.width = cellWidth-2 + 'px'
 
-			rowHeadDiv.innerHTML = sheetGridModel[0][i]
+			rowHeadDiv.innerHTML = gridHeader[0][i]
 		}
 
 	}
 
+    var SheetBindEventModule = __webpack_require__(5)
+    var SheetBindEvent=SheetBindEventModule.SheetBindEvent
+    var sheetBindEvent=new SheetBindEvent(sheet)
+
+
 	for(var j = 1;j<rowNum;j++){
 		var rowTR = document.createElement('tr')
-		sheetGridTable.appendChild(rowTR)
+		sheetTable.appendChild(rowTR)
 
 		for(var k=0; k<colNum;k++){
 			if(k === 0){
 				var rowTH = document.createElement('th')
 				rowTR.appendChild(rowTH)
+                rowTH.style.width = headWidth + 'px'
+                rowTH.style.height = cellHeight + 'px'
+
 				var rowDiv = document.createElement('div')
 				rowTH.appendChild(rowDiv)
-
-				rowTH.style.width = headWidth + 'px'
-				rowTH.style.height = cellHeight + 'px'
-				rowDiv.style.width = headWidth-2 + 'px'
-				rowDiv.style.height = cellHeight-2 + 'px'
-				rowDiv.innerHTML = sheetGridModel[j][k]
+                rowDiv.style.width = headWidth-2 + 'px'
+                rowDiv.style.height = cellHeight-2 + 'px'
+                rowDiv.innerHTML = gridHeader[j][k]
 			}else {
 				var rowTD = document.createElement('td')
+                rowTR.appendChild(rowTD)
+                rowTD.style.width = cellWidth + 'px'
+                rowTD.style.height = cellHeight + 'px'
                 rowTD.style.display = 'table-cell'
-				rowTR.appendChild(rowTD)
 
 				var rowInput = document.createElement('input')
-                rowInput.id = sheetGridModel[0][k]+"_"+j
+                rowTD.appendChild(rowInput)
+                rowInput.id = gridHeader[0][k]+"_"+j
+                rowInput.style.width = cellWidth-2 + 'px'
+                rowInput.style.height = cellHeight-2 + 'px'
                 rowInput.style.position = 'absolute'
                 rowInput.style.color = 'transparent'
                 rowInput.style.backgroundColor = 'transparent'
-				rowTD.onmousedown = function(){
-                    eventHandle.mouseDown(this)
-                }
-                window.onmousedown=function(){
-					eventHandle.setCellBackgroundColor('transparent')
-				}
-				rowTD.onmouseup = function(){
-                    eventHandle.mouseUp(this,sheet)
-                }
-				window.onmouseup = function(){
-					config.SheetConfig.isMouseDown=false
-				}
-				rowTD.onmousemove = function(){
-					if(config.SheetConfig.isMouseDown) {
-						eventHandle.mouseMove(this)
-					}
-				}
-                rowInput.ondblclick = function () {
-                    this.style.color='#111'
-                    this.style.background='#efe'
-                }
-				rowInput.onfocus = function () {
-					this.parentNode.style.backgroundColor = '#69f'
-				}
-                rowInput.onblur=function () {
-                    this.style.color='transparent'
-                    this.style.background='transparent'
-					if(config.SheetConfig.isKeyDown){
-                    	var value=this.value
-                    	if(this.nextSibling.innerHTML==''&&value!=''){
-                    		var command = 'set '+ this.id + ' ' + value
-							var type = 'set'
-							sheet.UndoStack.setStack(command,type)
-						}
-						this.nextSibling.innerHTML=value
-					}
-					this.parentNode.style.backgroundColor = 'transparent'
-                }
-				rowInput.onkeydown=function (event) {
-					eventHandle.keyDown(this,event,sheet)
-				}
-                rowTD.appendChild(rowInput)
 
-                var rowDiv = document.createElement('div')
-                rowDiv.style.textAlign = 'right'
+                sheetBindEvent.init(rowTD,rowInput)
+
+				var rowDiv = document.createElement('div')
                 rowTD.appendChild(rowDiv)
-
-				rowTD.style.width = cellWidth + 'px'
-				rowTD.style.height = cellHeight + 'px'
-				rowInput.style.width = cellWidth-2 + 'px'
-				rowInput.style.height = cellHeight-2 + 'px'
                 rowDiv.style.width = cellWidth-2 + 'px'
                 rowDiv.style.height = cellHeight-2 + 'px'
-
+                rowDiv.style.textAlign = 'right'
 			}
 		}
 	}
 }
-module.exports.Render = Render
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Created by Ian on 17/6/7.
- */
-
-var configModule = __webpack_require__(0)
-
-var sheetConfig = configModule.SheetConfig
-
-var Sheet = function (SheetTool, SheetGrid,UndoStack) {
-
-	this.width = sheetConfig.width
-	this.height = sheetConfig.height
-
-	this.SheetTool = SheetTool
-	this.SheetGrid = SheetGrid
-	this.UndoStack = UndoStack
-}
-
-module.exports.Sheet = Sheet
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Created by Ian on 17/6/7.
- */
-
-/**
- * 表格对象
- */
-
-
-var configModule = __webpack_require__(0)
-
-var sheetGridConfig = configModule.SheetGridConfig
-
-var SheetGrid = function () {
-	this.height = sheetGridConfig.height
-	this.width = sheetGridConfig.width
-
-	this.headWidth = sheetGridConfig.headWidth
-	this.headHeight = sheetGridConfig.headHeight
-
-	this.rowNum = sheetGridConfig.rowNum
-	this.colNum = sheetGridConfig.colNum
-
-	this.cells = {}
-}
-
-module.exports.SheetGrid = SheetGrid
+module.exports.SheetRender = SheetRender
 
 /***/ }),
 /* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
-/**
- * Created by Ian on 17/6/7.
- */
-
 var configModule = __webpack_require__(0)
 
-var sheetToolConfig = configModule.SheetToolConfig
+var ToolConfig = configModule.ToolConfig
 
-var SheetTool = function () {
-	this.width = sheetToolConfig.width
-	this.height = sheetToolConfig.height
+var Tool = function () {
+    this.width = ToolConfig.width
+    this.height = ToolConfig.height
 }
 
-module.exports.SheetTool = SheetTool
+module.exports.Tool = Tool
 
 /***/ }),
 /* 9 */
+/***/ (function(module, exports) {
+
+
+
+var ToolRender=function(){
+
+}
+ToolRender.prototype.init=function(toolDiv,width,height){
+    toolDiv.style.width = width + 'px'
+    toolDiv.style.height = height + 'px'
+    toolDiv.style.backgroundColor = '#aaaaaa'
+    //sheetToolDiv.innerHTML = "&#xe900;&#xe901;&#xe14d;&#xe14e;&#xe14f;"
+    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f"]
+
+    html.forEach(function(innerhtml){
+        var buttonDiv = document.createElement('div')
+        buttonDiv.style.display = "inline"
+        buttonDiv.innerHTML=innerhtml
+
+        buttonDiv.onclick = function(){
+            // eventHandle.buttonClick(innerhtml)
+        }
+        toolDiv.appendChild(buttonDiv)
+    })
+}
+module.exports.ToolRender = ToolRender
+
+/***/ }),
+/* 10 */
 /***/ (function(module, exports) {
 
 /**
@@ -764,7 +755,7 @@ var UndoStack = function () {
     this.stack=[]
 
 }
-UndoStack.prototype.setStack=function(command,type){
+UndoStack.prototype.pushCommand = function(command,type){
     var stack={
         command : command,
         type: type
@@ -772,13 +763,68 @@ UndoStack.prototype.setStack=function(command,type){
     this.stack.push(stack)
     this.tos++
 }
-UndoStack.prototype.reDo=function(){
+UndoStack.prototype.reDo = function(){
 
 }
-UndoStack.prototype.unDo=function(){
+UndoStack.prototype.unDo = function(){
 
 }
 module.exports.UndoStack = UndoStack
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var WSRender=function(wsManager,parentNode){
+    this.manager=wsManager
+    this.parNode=parentNode
+}
+
+WSRender.prototype.init=function () {
+    var ws=this.manager.workspace
+
+    //workspace
+    var WSDiv = document.createElement('div')
+    WSDiv.style.width = ws.width + 'px'
+    WSDiv.style.height = ws.height + 'px'
+    this.parNode.appendChild(WSDiv)
+
+    //tool
+    var ToolRenderModule = __webpack_require__(9)
+    var ToolRender = ToolRenderModule.ToolRender
+    var toolRender=new ToolRender()
+    var tool = ws.Tool
+    var toolDiv = document.createElement('div')
+    toolRender.init(toolDiv,tool.width,tool.height)
+    WSDiv.appendChild(toolDiv)
+
+    //sheet
+    var SheetRenderModule= __webpack_require__(7)
+    var SheetRender= SheetRenderModule.SheetRender
+    var sheetRender=new SheetRender(ws.Sheet)
+    var sheet=ws.Sheet
+    var sheetDiv=document.createElement('div')
+    sheetRender.init(sheetDiv)
+    WSDiv.appendChild(sheetDiv)
+}
+module.exports.WSRender = WSRender
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var config= __webpack_require__(0)
+
+var Workspace = function (Tool, Sheet) {
+
+    this.width = config.WSConfig.width
+    this.height = config.WSConfig.height
+
+    this.Tool =Tool
+    this.Sheet= Sheet
+}
+
+module.exports.Workspace = Workspace
 
 /***/ })
 /******/ ]);
