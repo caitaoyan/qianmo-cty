@@ -378,9 +378,9 @@ var sheetEventHandler = null
 var SheetEventBinder = function (sheet) {
     this.sheet=sheet
     sheetEventHandler=new SheetEventHandler(sheet)
-    window.onmousedown=function(){
-        document.getElementById('colorSelect').style.display='none'
-    }
+    // window.onmousedown=function(){
+    //     document.getElementById('colorSelect').style.display='none'
+    // }
     window.onmouseup = function(){
         config.WSConfig.isMouseDown=false
     }
