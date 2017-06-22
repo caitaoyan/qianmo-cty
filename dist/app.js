@@ -540,10 +540,12 @@ SheetEventHandler.prototype.setCellBackgroundColor=function(backgroundColor){
         for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++){
             for(var j=cells.firstCellRow;j<=cells.lastCellRow;j++){
                 var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
-                if(backgroundColor=='#fff'&&ele.backBackgroundColor!=undefined){
-                    ele.style.backgroundColor = ele.backBackgroundColor
-                }else{
-                    ele.style.backgroundColor = backgroundColor
+                if(ele){
+                    if(backgroundColor=='#fff'&&ele.backBackgroundColor!=undefined){
+                        ele.style.backgroundColor = ele.backBackgroundColor
+                    }else{
+                        ele.style.backgroundColor = backgroundColor
+                    }
                 }
             }
         }
@@ -893,9 +895,9 @@ ToolEventBinder.prototype.initFontFamily=function(fontFamilySelect){
         toolEventBinder.fontValue=fontFamily
         toolEventBinder.fontType='family'
         toolEventHandler.setFont(toolEventBinder)
+        fontFamilySelect.value='-----'
     }
 }
-
 ToolEventBinder.prototype.initFontSize=function(fontSizeSelect){
     var toolEventBinder=this
     fontSizeSelect.onchange=function(){
@@ -903,9 +905,9 @@ ToolEventBinder.prototype.initFontSize=function(fontSizeSelect){
         toolEventBinder.fontValue=fontSize
         toolEventBinder.fontType='size'
         toolEventHandler.setFont(toolEventBinder)
+        fontSizeSelect.value='-----'
     }
 }
-
 ToolEventBinder.prototype.initFontWeight=function(fontWeightDiv){
     var toolEventBinder=this
     fontWeightDiv.onclick=function(){
@@ -918,7 +920,6 @@ ToolEventBinder.prototype.initFontWeight=function(fontWeightDiv){
         }
     }
 }
-
 ToolEventBinder.prototype.initFontStyle=function(fontStyleDiv){
     var toolEventBinder=this
     fontStyleDiv.onclick=function(){
@@ -931,7 +932,6 @@ ToolEventBinder.prototype.initFontStyle=function(fontStyleDiv){
         }
     }
 }
-
 ToolEventBinder.prototype.initColor=function(colorDiv){
     var toolEventBinder=this
     colorDiv.onclick=function(){
@@ -949,7 +949,6 @@ ToolEventBinder.prototype.initColor=function(colorDiv){
 
     }
 }
-
 ToolEventBinder.prototype.initBackgroundColor=function(backgroundColorDiv){
     var toolEventBinder=this
     backgroundColorDiv.onclick=function(){
@@ -967,13 +966,31 @@ ToolEventBinder.prototype.initBackgroundColor=function(backgroundColorDiv){
 
     }
 }
-
 ToolEventBinder.prototype.initColorSelect=function(td){
     var toolEventBinder=this
     td.onclick=function(){
         toolEventBinder.fontValue=this.style.backgroundColor
         document.getElementById('colorSelect').style.display='none'
         toolEventHandler.setFont(toolEventBinder)
+    }
+}
+ToolEventBinder.prototype.initMerge=function(mergeDiv){
+    var toolEventBinder=this
+    mergeDiv.onclick=function(){
+        config.WSConfig.isFont=false
+        // toolEventBinder.fontValue='italic'
+        toolEventBinder.fontType='merge'
+        toolEventHandler.setFont(toolEventBinder)
+    }
+}
+ToolEventBinder.prototype.initFontBorder=function(fontBorderSelect){
+    var toolEventBinder=this
+    fontBorderSelect.onchange=function(){
+        var fontBorder=fontBorderSelect.value
+        toolEventBinder.fontValue=fontBorder
+        toolEventBinder.fontType='border'
+        toolEventHandler.setFont(toolEventBinder)
+        fontBorderSelect.value='-----'
     }
 }
 module.exports.ToolEventBinder=ToolEventBinder
@@ -1004,21 +1021,27 @@ ToolEventHandler.prototype.setFont=function(toolEventBinder){
         var cells=util.getColAndRow(document.getElementById(firstCell),
             document.getElementById(lastCell))
         if(cells!=null) {
-            for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++){
-                for(var j=cells.firstCellRow;j<=cells.lastCellRow;j++){
-                    var ele = document.getElementById(String.fromCharCode(i) + '_' + j).firstChild
-                    if(fontType=='family'){
-                        setFontFamily(ele,fontValue)
-                    }else if(fontType=='size'){
-                        setFontSize(ele,fontValue)
-                    }else if(fontType=='weight'){
-                        setFontWeight(ele,fontValue)
-                    }else if(fontType=='style'){
-                        setFontStyle(ele,fontValue)
-                    }else if(fontType=='color'){
-                        setFontColor(ele,fontValue)
-                    }else if(fontType=='backgroundColor'){
-                        setFontBackgroundColor(ele,fontValue)
+            if(fontType=='merge'){
+                mergeCell(firstCell,lastCell,cells,sheet)
+            }else if(fontType=='border'){
+                setFontBorder(cells,fontValue)
+            }else{
+                for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++){
+                    for(var j=cells.firstCellRow;j<=cells.lastCellRow;j++){
+                        var ele = document.getElementById(String.fromCharCode(i) + '_' + j).firstChild
+                        if(fontType=='family'){
+                            setFontFamily(ele,fontValue)
+                        }else if(fontType=='size'){
+                            setFontSize(ele,fontValue)
+                        }else if(fontType=='weight'){
+                            setFontWeight(ele,fontValue)
+                        }else if(fontType=='style'){
+                            setFontStyle(ele,fontValue)
+                        }else if(fontType=='color'){
+                            setFontColor(ele,fontValue)
+                        }else if(fontType=='backgroundColor'){
+                            setFontBackgroundColor(ele,fontValue)
+                        }
                     }
                 }
             }
@@ -1059,7 +1082,6 @@ function setFontStyle(ele,fontStyle){
 
     ele.style.fontStyle=fontStyle
 }
-
 function setFontColor(ele,fontColor){
     ele.backBackgroundColor=fontColor
     ele.parentNode.style.color=fontColor
@@ -1068,6 +1090,107 @@ function setFontBackgroundColor(ele,fontBackgroundColor){
     ele.parentNode.backBackgroundColor=fontBackgroundColor
     ele.parentNode.style.backgroundColor=fontBackgroundColor
 }
+function mergeCell(firstCell,lastCell,cells,sheet){
+    var newCell=document.getElementById(String.fromCharCode(cells.firstCellCol)+"_"+cells.firstCellRow)
+    if(firstCell!=lastCell){
+       var colSpanNum=0
+       var rowSpanNum=0
+        for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
+            var newRowSpanNum=0
+            for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
+                newRowSpanNum++
+                if(i!=cells.firstCellCol||j!=cells.firstCellRow){
+                    var ele=document.getElementById(String.fromCharCode(i) + '_' + j)
+                    if(ele){
+                        ele .style.display='none'
+                    }
+                }
+                if(i==cells.lastCellCol&&newCell.colSpan>colSpanNum){
+                    for(var num=1;num<(newCell.colSpan-colSpanNum);num++){
+                        var ele=document.getElementById(String.fromCharCode(i+num) + '_' + j)
+                        if(ele){
+                            ele .style.display='none'
+                        }
+                    }
+                }
+            }
+            if(newRowSpanNum>=rowSpanNum){
+                rowSpanNum=newRowSpanNum
+            }
+            if(newCell.rowSpan>rowSpanNum){
+                for(var num=0;num<(newCell.rowSpan-rowSpanNum);num++){
+                    var ele=document.getElementById(String.fromCharCode(i) + '_' + (j+num))
+                    if(ele){
+                        ele .style.display='none'
+                }
+                }
+            }
+            colSpanNum++
+        }
+        if(rowSpanNum>newCell.rowSpan){
+            newCell.rowSpan=rowSpanNum
+        }
+        if(colSpanNum>newCell.colSpan){
+            newCell.colSpan=colSpanNum
+        }
+        sheet.range=newCell.id+":"+newCell.id
+    }else{
+        var colNum=newCell.colSpan
+        var rowNum=newCell.rowSpan
+        for(var i=0;i<colNum;i++) {
+            for (var j = 0; j <rowNum; j++) {
+                var id=String.fromCharCode(cells.firstCellCol+i) + '_' + (cells.firstCellRow+j)
+                var ele=document.getElementById(id)
+                if(ele){
+                    ele.colSpan=1
+                    ele.rowSpan=1
+                    ele .style.display='table-cell'
+                }
+            }
+        }
+    }
+}
+function  setFontBorder(cells,fontValue){
+    // '-----','左边框','上边框','右边框','下边框','外侧边框','无边框','全边框'
+    for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
+        for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
+            var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
+            if(fontValue=='无边框'){
+                ele.style.border='1px solid #ccc'
+                ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                ele.style.borderRight='1px solid #ccc'
+                ele = document.getElementById(String.fromCharCode(i) + '_' + (j-1))
+                ele.style.borderBottom='1px solid #ccc'
+            }else if(fontValue=='全边框'){
+                ele.style.border='1px solid #000'
+                ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                ele.style.borderRight='1px solid #000'
+                ele = document.getElementById(String.fromCharCode(i) + '_' + (j-1))
+                ele.style.borderBottom='1px solid #000'
+            }else{
+                if(i==cells.firstCellCol&&(fontValue=='左边框'||fontValue=='外侧边框')){
+                    ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                    ele.style.borderRight='1px solid #000'
+                }
+                if(j == cells.firstCellRow&&(fontValue=='上边框'||fontValue=='外侧边框')){
+                    ele = document.getElementById(String.fromCharCode(i) + '_' + (j-1))
+                    ele.style.borderBottom='1px solid #000'
+                }
+                if(i==cells.lastCellCol&&(fontValue=='右边框'||fontValue=='外侧边框')){
+                    ele.style.borderRight='1px solid #000'
+                }
+                if(j == cells.lastCellRow&&(fontValue=='下边框'||fontValue=='外侧边框')){
+                    ele.style.borderBottom='1px solid #000'
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
 module.exports.ToolEventHandler = ToolEventHandler
 
 /***/ }),
@@ -1104,32 +1227,28 @@ ToolRender.prototype.init=function(toolDiv,width,height){
     var toolEventBinder=new ToolEventBinder(this.sheet)
 
     renderFont(toolEventBinder,toolDiv)
-    //color,字体颜色
-    var colorDiv=document.createElement('div')
-    colorDiv.style.display='inline'
-    colorDiv.style.marginLeft='10px'
-    colorDiv.style.paddingLeft='15px'
-    colorDiv.style.cursor='pointer'
-    colorDiv.style.border='1px solid black'
-    colorDiv.style.width='15px'
-    colorDiv.style.height='15px'
-    colorDiv.style.backgroundColor='#fff'
-    toolDiv.appendChild(colorDiv)
-    toolEventBinder.initColor(colorDiv)
-
-    //backgroundColor背景颜色
-    var backgroundColorDiv=document.createElement('div')
-    backgroundColorDiv.style.display='inline'
-    backgroundColorDiv.style.marginLeft='10px'
-    backgroundColorDiv.style.paddingLeft='15px'
-    backgroundColorDiv.style.cursor='pointer'
-    backgroundColorDiv.style.border='1px solid black'
-    backgroundColorDiv.style.width='15px'
-    backgroundColorDiv.style.height='15px'
-    backgroundColorDiv.style.backgroundColor='#fff'
-    toolDiv.appendChild(backgroundColorDiv)
-    toolEventBinder.initBackgroundColor(backgroundColorDiv)
+    renderColorAndBackgroundColor(toolEventBinder,toolDiv)
     renderColorSelect(toolEventBinder,toolDiv)
+
+    //合并单元格
+    var mergeDiv=document.createElement('div')
+    mergeDiv.style.display = "inline"
+    mergeDiv.innerHTML='&#xe157'
+    mergeDiv.style.paddingLeft='10px'
+    mergeDiv.style.cursor='pointer'
+    toolEventBinder.initMerge(mergeDiv)
+    toolDiv.appendChild(mergeDiv)
+
+    //单元格边框
+    var fontBorderSelect=document.createElement('select')
+    var fontBorderOption=['-----','左边框','上边框','右边框','下边框','无边框','外侧边框','全边框']
+    fontBorderOption.forEach(function(o){
+        var option=document.createElement('option')
+        option.innerHTML=o
+        fontBorderSelect.appendChild(option)
+    })
+    toolEventBinder.initFontBorder(fontBorderSelect)
+    toolDiv.appendChild(fontBorderSelect)
 }
 
 function renderFont(toolEventBinder,toolDiv){
@@ -1178,6 +1297,34 @@ function renderFont(toolEventBinder,toolDiv){
     toolEventBinder.initFontStyle(fontStyleDiv)
     toolDiv.appendChild(fontStyleDiv)
 }
+function renderColorAndBackgroundColor(toolEventBinder,toolDiv){
+    //color,字体颜色
+    var colorDiv=document.createElement('div')
+    colorDiv.style.display='inline'
+    colorDiv.style.marginLeft='10px'
+    colorDiv.style.paddingLeft='15px'
+    colorDiv.style.cursor='pointer'
+    colorDiv.style.border='1px solid black'
+    colorDiv.style.width='15px'
+    colorDiv.style.height='15px'
+    colorDiv.style.backgroundColor='#fff'
+    toolDiv.appendChild(colorDiv)
+    toolEventBinder.initColor(colorDiv)
+
+    //backgroundColor背景颜色
+    var backgroundColorDiv=document.createElement('div')
+    backgroundColorDiv.style.display='inline'
+    backgroundColorDiv.style.marginLeft='10px'
+    backgroundColorDiv.style.paddingLeft='15px'
+    backgroundColorDiv.style.cursor='pointer'
+    backgroundColorDiv.style.border='1px solid black'
+    backgroundColorDiv.style.width='15px'
+    backgroundColorDiv.style.height='15px'
+    backgroundColorDiv.style.backgroundColor='#fff'
+    toolDiv.appendChild(backgroundColorDiv)
+    toolEventBinder.initBackgroundColor(backgroundColorDiv)
+}
+
 function renderColorSelect(toolEventBinder,toolDiv){
     var colorSelectDiv=document.createElement("div")
     colorSelectDiv.id='colorSelect'
@@ -1188,26 +1335,6 @@ function renderColorSelect(toolEventBinder,toolDiv){
     colorSelectDiv.style.border = "1px solid black"
     colorSelectDiv.style.width='106px'
     toolDiv.appendChild(colorSelectDiv)
-    //
-    // var titleTable=document.createElement('table')
-    // titleTable.cellspacing='0'
-    // titleTable.cellpadding='0'
-    // titleTable.style.borderBottom='1px solid black'
-    // colorSelectDiv.appendChild(titleTable)
-    //
-    // var td=document.createElement('td')
-    // td.style.fontSize='10px'
-    // td.style.cursor='default'
-    // td.style.width='100%'
-    // td.style.backgroundColor='#999'
-    // td.style.color='#fff'
-    // titleTable.appendChild(td)
-    //
-    // td=document.createElement('td')
-    // td.style.fontSize='10px'
-    // td.style.cursor='default'
-    // td.style.color='#666'
-    // titleTable.appendChild(td)
 
     var mainDiv = document.createElement("div")
     mainDiv.style.padding = "3px"
