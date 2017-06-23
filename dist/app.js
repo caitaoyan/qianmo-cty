@@ -83,8 +83,8 @@
  *
  */
 var WSConfig = {
-	height: 600,
-	width: 1030,
+	height: 2400,
+	width: 2030,
 	isMouseDown:false,
 	isKeyDown:true,
 	isEditing:false,
@@ -507,6 +507,8 @@ SheetEventHandler.prototype.inputBlur = function () {
         }
         this.sheet.cells[ele.id].text = input.value
         ele.firstChild.innerHTML = input.value
+    }else{
+        ele.firstChild.innerHTML = ''
     }
 }
 SheetEventHandler.prototype.inputFocus = function () {
@@ -993,6 +995,16 @@ ToolEventBinder.prototype.initFontBorder=function(fontBorderSelect){
         fontBorderSelect.value='-----'
     }
 }
+ToolEventBinder.prototype.initTextAlign=function(textAlignSelect){
+    var toolEventBinder=this
+    textAlignSelect.onchange=function(){
+        var textAlign=textAlignSelect.value
+        toolEventBinder.fontValue=textAlign
+        toolEventBinder.fontType='textAlign'
+        toolEventHandler.setFont(toolEventBinder)
+        textAlignSelect.value='-----'
+    }
+}
 module.exports.ToolEventBinder=ToolEventBinder
 
 /***/ }),
@@ -1041,7 +1053,9 @@ ToolEventHandler.prototype.setFont=function(toolEventBinder){
                             setFontColor(ele,fontValue)
                         }else if(fontType=='backgroundColor'){
                             setFontBackgroundColor(ele,fontValue)
-                        }
+                        }else if(fontType=='textAlign'){
+                        setTextAlign(ele,fontValue)
+                    }
                     }
                 }
             }
@@ -1150,31 +1164,56 @@ function mergeCell(firstCell,lastCell,cells,sheet){
         }
     }
 }
-function  setFontBorder(cells,fontValue){
+function setFontBorder(cells,fontValue){
     // '-----','左边框','上边框','右边框','下边框','外侧边框','无边框','全边框'
     for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
         for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
             var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
             if(fontValue=='无边框'){
                 ele.style.border='1px solid #ccc'
+                var colSpan=ele.colSpan
+                for(var z=0;z<colSpan;z++) {
+                    ele = document.getElementById(String.fromCharCode(i + z) + '_' + (j - 1))
+                    if(ele){
+                        ele.style.borderBottom = '1px solid #ccc'
+                    }
+                }
                 ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
-                ele.style.borderRight='1px solid #ccc'
-                ele = document.getElementById(String.fromCharCode(i) + '_' + (j-1))
-                ele.style.borderBottom='1px solid #ccc'
+                if(ele){
+                    ele.style.borderRight='1px solid #ccc'
+                }
             }else if(fontValue=='全边框'){
                 ele.style.border='1px solid #000'
+                var colSpan=ele.colSpan
+                for(var z=0;z<colSpan;z++){
+                    ele = document.getElementById(String.fromCharCode(i+z) + '_' + (j-1))
+                    if(ele){
+                        ele.style.borderBottom='1px solid #000'
+                    }
+                }
                 ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
-                ele.style.borderRight='1px solid #000'
-                ele = document.getElementById(String.fromCharCode(i) + '_' + (j-1))
-                ele.style.borderBottom='1px solid #000'
-            }else{
-                if(i==cells.firstCellCol&&(fontValue=='左边框'||fontValue=='外侧边框')){
-                    ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                if(ele){
                     ele.style.borderRight='1px solid #000'
                 }
+
+
+            }else{
+                if(i==cells.firstCellCol&&(fontValue=='左边框'||fontValue=='外侧边框')){
+                    var eleNew = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                    if(eleNew){
+                        eleNew.style.borderRight='1px solid #000'
+                    }
+
+                }
                 if(j == cells.firstCellRow&&(fontValue=='上边框'||fontValue=='外侧边框')){
-                    ele = document.getElementById(String.fromCharCode(i) + '_' + (j-1))
-                    ele.style.borderBottom='1px solid #000'
+                    var colSpan=ele.colSpan
+                    for(var z=0;z<colSpan;z++){
+                        var eleNew = document.getElementById(String.fromCharCode(i+z) + '_' + (j-1))
+                        if(eleNew){
+                            eleNew.style.borderBottom='1px solid #000'
+                        }
+
+                    }
                 }
                 if(i==cells.lastCellCol&&(fontValue=='右边框'||fontValue=='外侧边框')){
                     ele.style.borderRight='1px solid #000'
@@ -1186,7 +1225,16 @@ function  setFontBorder(cells,fontValue){
         }
     }
 }
-
+function setTextAlign(ele,textAlign){
+    //'-----','左对齐','居中','右对齐'
+    if(textAlign=='左对齐'){
+        ele.style.textAlign='left'
+    }else if(textAlign=='居中'){
+        ele.style.textAlign='center'
+    }else if(textAlign=='右对齐'){
+        ele.style.textAlign='right'
+    }
+}
 
 
 
@@ -1230,30 +1278,12 @@ ToolRender.prototype.init=function(toolDiv,width,height){
     renderColorAndBackgroundColor(toolEventBinder,toolDiv)
     renderColorSelect(toolEventBinder,toolDiv)
 
-    //合并单元格
-    var mergeDiv=document.createElement('div')
-    mergeDiv.style.display = "inline"
-    mergeDiv.innerHTML='&#xe157'
-    mergeDiv.style.paddingLeft='10px'
-    mergeDiv.style.cursor='pointer'
-    toolEventBinder.initMerge(mergeDiv)
-    toolDiv.appendChild(mergeDiv)
-
-    //单元格边框
-    var fontBorderSelect=document.createElement('select')
-    var fontBorderOption=['-----','左边框','上边框','右边框','下边框','无边框','外侧边框','全边框']
-    fontBorderOption.forEach(function(o){
-        var option=document.createElement('option')
-        option.innerHTML=o
-        fontBorderSelect.appendChild(option)
-    })
-    toolEventBinder.initFontBorder(fontBorderSelect)
-    toolDiv.appendChild(fontBorderSelect)
 }
 
 function renderFont(toolEventBinder,toolDiv){
     //字体
     var fontFamilySelect=document.createElement('select')
+    fontFamilySelect.style.marginLeft='10px'
     var fontFamilyOption=['-----','Default','Custom','Verdana','Arial','Courier']
     fontFamilyOption.forEach(function(o){
         var option=document.createElement('option')
@@ -1265,6 +1295,7 @@ function renderFont(toolEventBinder,toolDiv){
 
     //字体大小
     var fontSizeSelect=document.createElement('select')
+    fontSizeSelect.style.marginLeft='10px'
     var fontSizeOption=['-----','Default','X-Small','Small','Medium','Large',
         'X-Large','6pt','7pt','8pt','9pt','10pt','11pt','12pt','14pt','16pt','18pt',
         '20pt','22pt','24pt','28pt','36pt','48pt','72pt']
@@ -1280,7 +1311,7 @@ function renderFont(toolEventBinder,toolDiv){
     var fontWeightDiv=document.createElement('div')
     fontWeightDiv.innerHTML='B'
     fontWeightDiv.style.display='inline'
-    fontWeightDiv.style.paddingLeft='10px'
+    fontWeightDiv.style.marginLeft='10px'
     fontWeightDiv.style.cursor='pointer'
     fontWeightDiv.style.fontWeight='bold'
     toolEventBinder.initFontWeight(fontWeightDiv)
@@ -1290,12 +1321,45 @@ function renderFont(toolEventBinder,toolDiv){
     var fontStyleDiv=document.createElement('div')
     fontStyleDiv.innerHTML='I'
     fontStyleDiv.style.display='inline'
-    fontStyleDiv.style.paddingLeft='10px'
+    fontStyleDiv.style.marginLeft='10px'
     fontStyleDiv.style.cursor='pointer'
     fontStyleDiv.style.fontStyle='italic'
     fontStyleDiv.style.fontFamily='Verdana'
     toolEventBinder.initFontStyle(fontStyleDiv)
     toolDiv.appendChild(fontStyleDiv)
+
+    //合并单元格
+    var mergeDiv=document.createElement('div')
+    mergeDiv.style.display = "inline"
+    mergeDiv.innerHTML='&#xe157'
+    mergeDiv.style.marginLeft='10px'
+    mergeDiv.style.cursor='pointer'
+    toolEventBinder.initMerge(mergeDiv)
+    toolDiv.appendChild(mergeDiv)
+
+    //单元格边框
+    var fontBorderSelect=document.createElement('select')
+    fontBorderSelect.style.marginLeft='10px'
+    var fontBorderOption=['-----','左边框','上边框','右边框','下边框','无边框','外侧边框','全边框']
+    fontBorderOption.forEach(function(o){
+        var option=document.createElement('option')
+        option.innerHTML=o
+        fontBorderSelect.appendChild(option)
+    })
+    toolEventBinder.initFontBorder(fontBorderSelect)
+    toolDiv.appendChild(fontBorderSelect)
+
+    //字体位置
+    var textAlignSelect=document.createElement('select')
+    textAlignSelect.style.marginLeft='10px'
+    var textAlignOption=['-----','左对齐','居中','右对齐']
+    textAlignOption.forEach(function(o){
+        var option=document.createElement('option')
+        option.innerHTML=o
+        textAlignSelect.appendChild(option)
+    })
+    toolEventBinder.initTextAlign(textAlignSelect)
+    toolDiv.appendChild(textAlignSelect)
 }
 function renderColorAndBackgroundColor(toolEventBinder,toolDiv){
     //color,字体颜色
