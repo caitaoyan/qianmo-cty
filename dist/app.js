@@ -1441,18 +1441,13 @@ ToolEventBinder.prototype.initFileInput=function(fileInput){
             alert("请升级至最新版本的浏览器")
         }
         if(ajax !=null){
-            ajax.open("GET","json",true)
-            ajax.send(null)
-            ajax.onreadystatechange=function(){
-                if(ajax.readyState==4&&ajax.status==200){
-                    var CellList = JSON.parse(ajax.responseText)
-                    CellList.forEach(function(e){
-                        for (var key in e) {
-                            cellRender.renderCell(e['cellName'],key,e[key])
-                        }
-                    })
-                }
-            }
+            $.get("json.json", function (data, status) {
+                data.forEach(function(e){
+                    for (var key in e) {
+                        cellRender.renderCell(e['cellName'],key,e[key])
+                    }
+                })
+            })
         }
     }
 }
