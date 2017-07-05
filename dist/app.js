@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "dist/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -83,7 +83,7 @@
  *
  */
 var WSConfig = {
-	height: 2400,
+	height: 4400,
 	width: 2030,
 	isMouseDown:false,
 	isKeyDown:true,
@@ -201,7 +201,11 @@ var keyboardTables = {
 		144: "[numlock]", 145: "[scrolllock]", 224: "[cmd]"
 	}
 }
-
+/**
+ * 公式类型
+ * @type {[*]}
+ */
+var function_classlist= ["all", "stat", "lookup", "datetime", "financial", "test", "math", "text"]
 /**
  * 输出模块
  *
@@ -215,6 +219,7 @@ module.exports.CellConfig = CellConfig
 /***/ }),
 /* 1 */
 /***/ (function(module, exports) {
+
 
 var Util=function(){
 
@@ -248,69 +253,11 @@ Util.prototype.getColAndRow=function(firstCell,lastCell){
     return result
 }
 
+
 module.exports.Util=Util
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * 整体工作管理对象
- * @constructor
- */
-var WSManager = function () {}
-
-WSManager.prototype.init = function (parentNode) {
-
-    //实例化初始化Tool对象
-    var ToolModule = __webpack_require__(9)
-    var Tool=ToolModule.Tool
-    var tool=new Tool()
-
-    //实例化初始化UndoStack对象
-    var UndoStackModule =__webpack_require__(13)
-    var UndoStack = UndoStackModule.UndoStack
-    var undoStack = new UndoStack()
-
-    //实例化初始化Sheet对象
-    var SheetModule = __webpack_require__(5)
-    var Sheet =SheetModule.Sheet
-    var sheet=new Sheet(undoStack)
-
-    //实例化初始化Workspace对象
-    var WorkspaceModule = __webpack_require__(15)
-    var Workspace = WorkspaceModule.Workspace
-    this.workspace=new Workspace(tool,sheet)
-
-    //实例化初始化WSRender对象
-    var WSRenderModule = __webpack_require__(14)
-    var WSRender = WSRenderModule.WSRender
-    var wsRender=new WSRender(this,parentNode)
-
-    wsRender.init()
-}
-
-module.exports.WSManager = WSManager
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Created by Ian on 17/6/5.
- */
-
-var WSManagerModule = __webpack_require__(2)
-var WSManager = WSManagerModule.WSManager
-var wsManager=new WSManager()
-
-var parentNode = document.getElementById('QianMoApp')
-
-wsManager.init(parentNode)
-
-
-/***/ }),
-/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -325,6 +272,8 @@ var Cell = function (coord) {
 
 	//成员属性
 	//设置默认值
+	this.autoLF = false
+	this.viewWidth = 0
 	this.height = cellConfig.height
 	this.width = cellConfig.width
 
@@ -335,7 +284,428 @@ var Cell = function (coord) {
 module.exports.Cell = Cell
 
 /***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var config = __webpack_require__(0)
+
+var UtilModule=__webpack_require__(1)
+var Util=UtilModule.Util
+var util=new Util()
+
+var CellModule = __webpack_require__(2)
+var Cell=CellModule.Cell
+
+var CellRender = function (sheet) {
+    this.sheet=sheet
+}
+/**
+ * 渲染单元格
+ * @param id
+ * @param cmd
+ * @param value
+ */
+CellRender.prototype.renderCell=function (id,cmd,value) {
+    var sheet=this.sheet
+    if(id && id.indexOf('_')==-1){
+        var index=id.search(/\d/)
+        id=id.substring(0,index)+'_'+id.substring(index,id.length)
+    }
+    var  ele = document.getElementById(id)
+    if(id && !sheet.cells[id]){
+        sheet.cells[id] = new Cell(id)
+    }
+    if(id==null||ele){
+        switch (cmd) {
+            //合并范围
+            case "area":
+                if(value.indexOf(':')==-1){
+                    var firstCell=value.split('-')[0]
+                    var index=firstCell.search(/\d/)
+                    firstCell=firstCell.substring(0,index)+'_'+firstCell.substring(index,firstCell.length)
+                    var lastCell=value.split('-')[1]
+                    var index=lastCell.search(/\d/)
+                    lastCell=lastCell.substring(0,index)+'_'+lastCell.substring(index,lastCell.length)
+                    sheet.range=firstCell+':'+lastCell
+                }
+                var firstCell=sheet.range.split(':')[0]
+                var lastCell=sheet.range.split(':')[1]
+                var cells=util.getColAndRow(document.getElementById(firstCell),
+                    document.getElementById(lastCell))
+                this.mergeCell(firstCell,lastCell,cells,this.sheet)
+                break
+            //前景色
+            case "foregroundColor":
+                if(value!='#000000'){
+                    ele.style.color=value
+                    this.sheet.cells[id].foregroundColor=value
+                }
+
+                break
+            //背景色
+            case "backgroundColor":
+                if(value!='#000000'){
+                    ele.style.backgroundColor=value
+                    this.sheet.cells[id].backgroundColor=value
+                }
+                break
+            //文本内容
+            case "content":
+                if(value==null){
+                    value=''
+                }
+                ele.firstChild.innerHTML=value
+                this.sheet.cells[id].text=value
+                break
+            //字体
+            case "font":
+                if(value=='Default'){
+                    value=''
+                }
+                ele.style.fontFamily=value
+                this.sheet.cells[id].font=value
+                break
+            //字体大小
+            case "fontSize":
+                if(value=='Default'||value=='-----'){
+                    value=''
+                }
+                ele.style.fontSize=value
+                this.sheet.cells[id].fontSize=value
+                break
+            //字体类型
+            case "format":
+                this.sheet.cells[id].format=value
+                break
+            //加粗
+            case "bold":
+                if(value=='加粗'){
+                    value='bold'
+                }
+                if(!config.WSConfig.isFont){
+                    if(ele.style.fontWeight!=''){
+                        value=''
+                    }else{
+                        config.WSConfig.isFont=true
+                    }
+                }
+                ele.style.fontWeight=value
+                this.sheet.cells[id].fontWeight=value
+                break
+            //斜体
+            case "italic":
+                if(!config.WSConfig.isFont){
+                    if(ele.style.fontStyle!=''){
+                        value=''
+                    }else{
+                        config.WSConfig.isFont=true
+                    }
+                }
+
+                ele.style.fontStyle=value
+                this.sheet.cells[id].fontStyle=value
+                break
+            //对齐方向
+            case "alignment":
+                if(value=='左对齐'){
+                    value='left'
+                }else if(value=='居中对齐'){
+                    value='center'
+                }else if(value=='右对齐'){
+                    value='right'
+                }
+                ele.style.textAlign=value
+                this.sheet.cells[id].textAlign=value
+                break
+            //边框
+            case "bottomFrame":
+                if(value=='有'){
+                    value='bottom_bottomFrame'
+                }
+            case "leftFrame":
+                if(value=='有'){
+                    value='left_leftFrame'
+                }
+            case "rightFrame":
+                if(value=='有'){
+                    value='right_rightFrame'
+                }
+            case "topFrame":
+                if(value=='有'){
+                    value='top_topFrame'
+
+                }
+            case "frame":
+                // '-----','左边框','上边框','右边框','下边框','外侧边框','无边框','全边框'
+                if(value=='左边框'){
+                    value='left_frame'
+                }else if(value=='上边框'){
+                    value='top_frame'
+                }else if(value=='右边框'){
+                    value='right_frame'
+                }else if(value=='下边框'){
+                    value='bottom_frame'
+                }else if(value=='外侧边框'){
+                    value='out_frame'
+                }else if(value=='无边框'){
+                    value='none_frame'
+                }else if(value=='全边框'){
+                    value='all_frame'
+                }
+                if(value!='无'){
+                    var firstCell=sheet.range.split(':')[0]
+                    var lastCell=sheet.range.split(':')[1]
+                    var cells=util.getColAndRow(document.getElementById(firstCell),
+                        document.getElementById(lastCell))
+                    this.setFontBorder(cells,value.split('_')[0],value.split('_')[1])
+                }
+                break
+            //缩进
+            case "indentation":
+                var html='';
+                for(var i=0;i<value;i++){
+                    html+='&nbsp;'
+                }
+                ele.firstChild.innerHTML=html+this.sheet.cells[id].text
+                this.sheet.cells[id].indentation=value
+                break
+        }
+    }
+}
+/**
+ * 合并单元格
+ * @param firstCell
+ * @param lastCell
+ * @param cells
+ * @param sheet
+ */
+CellRender.prototype.mergeCell=function(firstCell,lastCell,cells,sheet){
+    var newFirstCell=document.getElementById(String.fromCharCode(cells.firstCellCol)+"_"+cells.firstCellRow)
+    var col=0
+    var row=0
+    if(firstCell!=lastCell){
+        for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
+            var newRow=0
+            for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
+                var ele=document.getElementById(String.fromCharCode(i) + '_' + j)
+                if(ele){
+                    if(ele.style.display!='none'){
+                        newRow=newRow+ele.rowSpan
+                    }
+                }
+            }
+            if(newRow>row){
+                row=newRow
+            }
+        }
+        for(var i=cells.firstCellRow;i<=cells.lastCellRow;i++) {
+            var newCol=0
+            for (var j = cells.firstCellCol; j <= cells.lastCellCol; j++) {
+                var ele=document.getElementById(String.fromCharCode(j) + '_' + i)
+                if(ele){
+                    if(ele.style.display!='none'){
+                        newCol=newCol+ele.colSpan
+                    }
+                }
+            }
+            if(newCol>col){
+                col=newCol
+            }
+        }
+        var newLastCell=String.fromCharCode(cells.firstCellCol+col-1) + '_' + (cells.firstCellRow+row-1)
+        cells=util.getColAndRow(newFirstCell,
+            document.getElementById(newLastCell))
+        var colSpanNum=0
+        var rowSpanNum=0
+        for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
+            var newRowSpanNum=0
+            for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
+                    var ele=document.getElementById(String.fromCharCode(i) + '_' + j)
+                    if(ele){
+                        newRowSpanNum++
+                        if(i!=cells.firstCellCol||j!=cells.firstCellRow){
+                            ele .style.display='none'
+                        }
+                }
+            }
+            if(newRowSpanNum>=rowSpanNum){
+                rowSpanNum=newRowSpanNum
+            }
+            colSpanNum++
+        }
+        newFirstCell.rowSpan=rowSpanNum
+        newFirstCell.colSpan=colSpanNum
+        if(!this.sheet.cells[newFirstCell.id]){
+            this.sheet.cells[newFirstCell.id] = new Cell(newFirstCell.id)
+        }
+        this.sheet.cells[newFirstCell.id].rowSpan=rowSpanNum
+        this.sheet.cells[newFirstCell.id].colSpan=colSpanNum
+        sheet.range=newFirstCell.id+":"+newFirstCell.id
+    }else{
+        var colNum=newFirstCell.colSpan
+        var rowNum=newFirstCell.rowSpan
+        var flag=0;
+        var last=null;
+        for(var i=0;i<colNum;i++) {
+            for (var j = 0; j <rowNum; j++) {
+                var id=String.fromCharCode(cells.firstCellCol+i) + '_' + (cells.firstCellRow+j)
+                var ele=document.getElementById(id)
+                if(ele){
+                    last=ele
+                    ele.colSpan=1
+                    ele.rowSpan=1
+                    ele .style.display='table-cell'
+                    if(!this.sheet.cells[ele.id]){
+                        this.sheet.cells[ele.id] = new Cell(ele.id)
+                    }
+                    this.sheet.cells[ele.id].rowSpan=ele.rowSpan
+                    this.sheet.cells[ele.id].colSpan=ele.colSpan
+                    if(flag==0){
+                        sheet.range=ele.id+":"
+                        flag++
+                    }
+
+                }
+            }
+        }
+        sheet.range+=last.id
+    }
+}
+/**
+ * 设置边框
+ * @param cells
+ * @param fontValue
+ */
+CellRender.prototype.setFontBorder=function(cells,fontValue,fontType){
+    // '-----','左边框','上边框','右边框','下边框','外侧边框','无边框','全边框'
+        for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
+        for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
+            var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
+            if(!this.sheet.cells[ele.id]){
+                this.sheet.cells[ele.id] = new Cell(ele.id)
+            }
+            this.sheet.cells[ele.id][fontType]=fontValue
+            if(fontValue=='none'){
+                ele.style.border='1px solid #ccc'
+                var colSpan=ele.colSpan
+                for(var z=0;z<colSpan;z++) {
+                    ele = document.getElementById(String.fromCharCode(i + z) + '_' + (j - 1))
+                    if(ele){
+                        ele.style.borderBottom = '1px solid #ccc'
+                    }
+                }
+                ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                if(ele){
+                    ele.style.borderRight='1px solid #ccc'
+                }
+            }else if(fontValue=='all'){
+                ele.style.border='1px solid #000'
+                var colSpan=ele.colSpan
+                for(var z=0;z<colSpan;z++){
+                    ele = document.getElementById(String.fromCharCode(i+z) + '_' + (j-1))
+                    if(ele){
+                        ele.style.borderBottom='1px solid #000'
+                    }
+                }
+                ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                if(ele){
+                    ele.style.borderRight='1px solid #000'
+                }
+
+
+            }else{
+                if(i==cells.firstCellCol&&(fontValue=='left'||fontValue=='out')){
+                    var eleNew = document.getElementById(String.fromCharCode(i-1) + '_' + j)
+                    if(eleNew){
+                        eleNew.style.borderRight='1px solid #000'
+                    }
+
+                }
+                if(j == cells.firstCellRow&&(fontValue=='top'||fontValue=='out')){
+                    var colSpan=ele.colSpan
+                    for(var z=0;z<colSpan;z++){
+                        var eleNew = document.getElementById(String.fromCharCode(i+z) + '_' + (j-1))
+                        if(eleNew){
+                            eleNew.style.borderBottom='1px solid #000'
+                        }
+
+                    }
+                }
+                if(i==cells.lastCellCol&&(fontValue=='right'||fontValue=='out')){
+                    ele.style.borderRight='1px solid #000'
+                }
+                if(j == cells.lastCellRow&&(fontValue=='bottom'||fontValue=='out')){
+                    ele.style.borderBottom='1px solid #000'
+                }
+            }
+        }
+    }
+}
+
+
+module.exports.CellRender = CellRender
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * 整体工作管理对象
+ * @constructor
+ */
+var WSManager = function () {}
+
+WSManager.prototype.init = function (parentNode) {
+
+    //实例化初始化Tool对象
+    var ToolModule = __webpack_require__(10)
+    var Tool=ToolModule.Tool
+    var tool=new Tool()
+
+    //实例化初始化UndoStack对象
+    var UndoStackModule =__webpack_require__(14)
+    var UndoStack = UndoStackModule.UndoStack
+    var undoStack = new UndoStack()
+
+    //实例化初始化Sheet对象
+    var SheetModule = __webpack_require__(6)
+    var Sheet =SheetModule.Sheet
+    var sheet=new Sheet(undoStack)
+
+    //实例化初始化Workspace对象
+    var WorkspaceModule = __webpack_require__(16)
+    var Workspace = WorkspaceModule.Workspace
+    this.workspace=new Workspace(tool,sheet)
+
+    //实例化初始化WSRender对象
+    var WSRenderModule = __webpack_require__(15)
+    var WSRender = WSRenderModule.WSRender
+    var wsRender=new WSRender(this,parentNode)
+
+    wsRender.init()
+}
+
+module.exports.WSManager = WSManager
+
+/***/ }),
 /* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * Created by Ian on 17/6/5.
+ */
+
+var WSManagerModule = __webpack_require__(4)
+var WSManager = WSManagerModule.WSManager
+var wsManager=new WSManager()
+
+var parentNode = document.getElementById('QianMoApp')
+
+wsManager.init(parentNode)
+
+
+/***/ }),
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -366,21 +736,18 @@ var Sheet = function (UndoStack) {
 module.exports.Sheet = Sheet
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 //事件绑定对象
 var config = __webpack_require__(0)
-var SheetEventHandlerModule=__webpack_require__(7)
+var SheetEventHandlerModule=__webpack_require__(8)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
 var SheetEventBinder = function (sheet) {
     this.sheet=sheet
     sheetEventHandler=new SheetEventHandler(sheet)
-    // window.onmousedown=function(){
-    //     document.getElementById('colorSelect').style.display='none'
-    // }
     window.onmouseup = function(){
         config.WSConfig.isMouseDown=false
     }
@@ -420,12 +787,12 @@ SheetEventBinder.prototype.initInput = function (input) {
 module.exports.SheetEventBinder=SheetEventBinder
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 //鼠标和键盘事件
 var config = __webpack_require__(0)
-var CellModule = __webpack_require__(4)
+var CellModule = __webpack_require__(2)
 var Cell=CellModule.Cell
 var UtilModule=__webpack_require__(1)
 var Util=UtilModule.Util
@@ -441,8 +808,12 @@ var SheetEventHandler = function (sheet) {
  * @param element
  */
 SheetEventHandler.prototype.mouseDown = function(element){
+    var cellPropDiv=document.getElementById("cellProp")
+    cellPropDiv.style.display='none'
+    cellPropDiv.innerHTML=''
     this.setCellBackgroundColor('#fff')
     if(element.id){
+        setCellProp(element,this.sheet.cells[element.id])
         this.firstCell = element
         config.WSConfig.isMouseDown=true
     }
@@ -454,6 +825,9 @@ SheetEventHandler.prototype.mouseDown = function(element){
 SheetEventHandler.prototype.mouseMove = function(element){
     this.setCellBackgroundColor('#fff')
     if(element.id){
+        var cellPropDiv=document.getElementById("cellProp")
+        cellPropDiv.style.display='none'
+        cellPropDiv.innerHTML=''
         this.lastCell=element
         this.setCellBackgroundColor('#69f')
     }
@@ -464,9 +838,12 @@ SheetEventHandler.prototype.mouseMove = function(element){
  */
 SheetEventHandler.prototype.mouseUp = function(element){
     if(element.id){
+
         this.lastCell = element
-        this.sheet.range=this.firstCell.id+':'+this.lastCell.id
-        this.setCellBackgroundColor('#69f')
+        if(this.firstCell){
+            this.sheet.range=this.firstCell.id+':'+this.lastCell.id
+            this.setCellBackgroundColor('#69f')
+        }
         config.editCell = element
     }
     config.WSConfig.isMouseDown=false
@@ -503,10 +880,20 @@ SheetEventHandler.prototype.inputBlur = function () {
     var ele = config.editCell
     if(input.value){
         if(!this.sheet.cells[ele.id]) {
-            this.sheet.cells[ele.id] = new Cell(ele)
+            this.sheet.cells[ele.id] = new Cell(ele.id)
         }
         this.sheet.cells[ele.id].text = input.value
         ele.firstChild.innerHTML = input.value
+        var sp = document.getElementById('sp')
+        sp.value = input.value
+        sp.style.font = ele.firstChild.style.font
+        sp.style.fontSize = ele.firstChild.style.fontSize
+        this.sheet.cells[ele.id].viewWidth = sp.offsetWidth
+        if(this.sheet.cells[ele.id].autoLF){
+            ele.width = this.sheet.cells[ele.id].width
+        }else{
+            ele.width = this.sheet.cells[ele.id].viewWidth
+        }
     }else{
         ele.firstChild.innerHTML = ''
     }
@@ -516,22 +903,22 @@ SheetEventHandler.prototype.inputFocus = function () {
     var input = document.getElementById('input')
     input.focus()
 }
-//鼠标失去焦点事件
-SheetEventHandler.prototype.mouseBlur=function(element){
-    element.style.color='transparent'
-    element.style.background='transparent'
-    if(config.WSConfig.isKeyDown){
-        var value=element.value
-        if(element.nextSibling.innerHTML==''&&value!=''){
-            var command = 'set '+ element.id + ' ' + value
-            var type = 'set'
-            this.sheet.UndoStack.pushCommand(command,type)
-        }
-        element.nextSibling.innerHTML=value
-    }
-    config.WSConfig.isKeyDown=true
-    element.parentNode.style.backgroundColor = 'transparent'
-}
+// //鼠标失去焦点事件
+// SheetEventHandler.prototype.mouseBlur=function(element){
+//     element.style.color='transparent'
+//     element.style.background='transparent'
+//     if(config.WSConfig.isKeyDown){
+//         var value=element.value
+//         if(element.nextSibling.innerHTML==''&&value!=''){
+//             var command = 'set '+ element.id + ' ' + value
+//             var type = 'set'
+//             this.sheet.UndoStack.pushCommand(command,type)
+//         }
+//         element.nextSibling.innerHTML=value
+//     }
+//     config.WSConfig.isKeyDown=true
+//     element.parentNode.style.backgroundColor = 'transparent'
+// }
 /**
  * 设置单元格背景颜色
  * @param backgroundColor
@@ -543,8 +930,10 @@ SheetEventHandler.prototype.setCellBackgroundColor=function(backgroundColor){
             for(var j=cells.firstCellRow;j<=cells.lastCellRow;j++){
                 var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
                 if(ele){
-                    if(backgroundColor=='#fff'&&ele.backBackgroundColor!=undefined){
-                        ele.style.backgroundColor = ele.backBackgroundColor
+                    if(backgroundColor=='#fff'
+                        &&this.sheet.cells[ele.id]!=undefined
+                        &&this.sheet.cells[ele.id].backgroundColor!=undefined){
+                        ele.style.backgroundColor = this.sheet.cells[ele.id].backgroundColor
                     }else{
                         ele.style.backgroundColor = backgroundColor
                     }
@@ -615,7 +1004,7 @@ SheetEventHandler.prototype.keyDown = function(element,event){
             var command = 'copy ' + this.sheet.copiedfrom + ' formulas'
             var type = 'copy'
             this.sheet.UndoStack.pushCommand(command,type)
-            ta = document.getElementById('ta')
+            var ta = document.getElementById('ta')
             var text = ''
             var firstCell=this.sheet.copiedfrom.split(':')[0]
             var lastCell=this.sheet.copiedfrom.split(':')[1]
@@ -651,7 +1040,7 @@ SheetEventHandler.prototype.keyDown = function(element,event){
 
             break
         case 86://ctrl+v
-            ta = document.getElementById('ta')
+            var ta = document.getElementById('ta')
             ta.style.display = 'block'
             ta.focus()
             ta.select()
@@ -693,7 +1082,36 @@ SheetEventHandler.prototype.keyDown = function(element,event){
             }
     }
 }
-
+function setCellProp(element,e){
+    if(e){
+        var cellPropDiv=document.getElementById("cellProp")
+        cellPropDiv.style.display='block'
+        var left=element.offsetLeft
+        var top=element.offsetTop
+        cellPropDiv.style.top=top+element.offsetHeight+26+'px'
+        cellPropDiv.style.left=left+element.offsetWidth+9+'px'
+        var cellPropTable=document.createElement('table')
+        cellPropDiv.appendChild(cellPropTable)
+        var tr=document.createElement('tr')
+        cellPropTable.appendChild(tr)
+        var th=document.createElement('th')
+        th.innerHTML='属性名称'
+        tr.appendChild(th)
+        th=document.createElement('th')
+        th.innerHTML='属性值'
+        tr.appendChild(th)
+        for (var key in e) {
+            var tr=document.createElement('tr')
+            cellPropTable.appendChild(tr)
+            var td=document.createElement('td')
+            td.innerHTML=key
+            tr.appendChild(td)
+            var td=document.createElement('td')
+            td.innerHTML=e[key]
+            tr.appendChild(td)
+        }
+    }
+}
 //获取元素的纵坐标
 function getTop(e){
     var offset=e.offsetTop;
@@ -706,10 +1124,11 @@ function getLeft(e){
     if(e.offsetParent!=null) offset+=getLeft(e.offsetParent)
     return offset
 }
+
 module.exports.SheetEventHandler = SheetEventHandler
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -727,8 +1146,17 @@ SheetRender.prototype.init = function (sheetDiv) {
 	var sheetTable = document.createElement('table')
     sheetTable.style.userSelect = 'none'
     sheetDiv.appendChild(sheetTable)
-	sheetTable.style.width = this.sheet.width + 'px'
-	sheetTable.style.height = this.sheet.height + 'px'
+	//sheetTable.style.width = 'auto'//this.sheet.width + 'px'
+	//sheetTable.style.height = 'auto'//this.sheet.height + 'px'
+    var cellPropDiv=document.createElement("div")
+    cellPropDiv.id='cellProp'
+    // cellPropDiv.style.display='none'
+    cellPropDiv.style.position = "absolute"
+    cellPropDiv.style.zIndex = 100
+    cellPropDiv.style.backgroundColor = "#FFF"
+    cellPropDiv.style.border = "1px solid black"
+    sheetDiv.appendChild(cellPropDiv)
+
 	//表格的具体渲染
 	renderSheet(this.sheet, sheetTable)
 }
@@ -767,10 +1195,10 @@ function createHeader(rowNum, colNum) {
  */
 function renderSheet(sheet, sheetTable) {
 	var gridHeader = createHeader(sheet.rowNum,  sheet.colNum)
-	var cellHeight = config.CellConfig.height
-	var cellWidth = config.CellConfig.width
-	var	headWidth = config.SheetConfig.headWidth
-	var	headHeight = config.SheetConfig.headHeight
+	// var cellHeight = config.CellConfig.height
+	// var cellWidth = config.CellConfig.width
+	// var	headWidth = config.SheetConfig.headWidth
+	// var	headHeight = config.SheetConfig.headHeight
 
 	var rowNum = gridHeader.length
 	var colNum = gridHeader[0].length
@@ -787,22 +1215,13 @@ function renderSheet(sheet, sheetTable) {
 		rowHeadTH.appendChild(rowHeadDiv)
 		//第一行第一列特殊处理
 		if(i === 0){
-			rowHeadTH.style.minWidth = headWidth + 'px'
-			rowHeadTH.style.minHeight = headHeight + 'px'
-			rowHeadDiv.style.minWidth = headWidth-2 + 'px'
-			rowHeadDiv.style.minHeight = headHeight-2 + 'px'
+
 		}else{
-			rowHeadTH.style.minHeight = headHeight + 'px'
-			rowHeadTH.style.minWidth = cellWidth + 'px'
-			rowHeadDiv.style.minHeight = headHeight-2 + 'px'
-			rowHeadDiv.style.minWidth = cellWidth-2 + 'px'
-
-			rowHeadDiv.innerHTML = gridHeader[0][i]
+			rowHeadDiv.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;'+gridHeader[0][i]+'&nbsp;&nbsp;&nbsp;&nbsp;'
 		}
-
 	}
 
-    var SheetEventBinderModule = __webpack_require__(6)
+    var SheetEventBinderModule = __webpack_require__(7)
     var SheetEventBinder=SheetEventBinderModule.SheetEventBinder
     var sheetEventBinder=new SheetEventBinder(sheet)
 
@@ -816,27 +1235,16 @@ function renderSheet(sheet, sheetTable) {
 			if(k === 0){
 				var rowTH = document.createElement('th')
 				rowTR.appendChild(rowTH)
-                rowTH.style.minWidth = headWidth + 'px'
-                rowTH.style.minHeight = cellHeight + 'px'
-
 				var rowDiv = document.createElement('div')
 				rowTH.appendChild(rowDiv)
-                rowDiv.style.minWidth = headWidth-2 + 'px'
-                rowDiv.style.minHeight = cellHeight-2 + 'px'
                 rowDiv.innerHTML = gridHeader[j][k]
 			}else {
 				var rowTD = document.createElement('td')
                 rowTD.id = gridHeader[0][k]+"_"+j
                 rowTR.appendChild(rowTD)
-                rowTD.style.minWidth = cellWidth + 'px'
-                rowTD.style.minHeight = cellHeight + 'px'
-                rowTD.style.display = 'table-cell'
                 sheetEventBinder.initRowTD(rowTD)
 				var rowDiv = document.createElement('div')
                 rowTD.appendChild(rowDiv)
-                rowDiv.style.minWidth = cellWidth-2 + 'px'
-                rowDiv.style.minHeight = cellHeight-2 + 'px'
-                rowDiv.style.textAlign = 'right'
 			}
 		}
 	}
@@ -851,13 +1259,20 @@ function renderSheet(sheet, sheetTable) {
     ta.value = '';
     ta.id = 'ta'
     sheetTable.appendChild(ta)
-    //sheetEventBinder.init()
+    var span = document.createElement('span') // 用于获得字符串的显示长度
+    span.style = 'visibility: hidden;white-space: nowrap;filter:alpha(opacity=0);'
+    span.value = '';
+    span.id = 'sp'
+    sheetTable.appendChild(span)
+
+
 }
+
 
 module.exports.SheetRender = SheetRender
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -875,27 +1290,38 @@ var Tool = function () {
 module.exports.Tool = Tool
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  工具栏绑定事件
  */
 var config = __webpack_require__(0)
-var ToolEventHandlerModule=__webpack_require__(11)
+var ToolEventHandlerModule=__webpack_require__(12)
 var ToolEventHandler = ToolEventHandlerModule.ToolEventHandler
 var toolEventHandler=null
+
+var CellRenderModule=__webpack_require__(3)
+var CellRender=CellRenderModule.CellRender
+var cellRender=null
 
 var ToolEventBinder=function(sheet){
     this.sheet=sheet
     toolEventHandler=new ToolEventHandler(sheet)
+    cellRender=new CellRender(sheet)
+}
+ToolEventBinder.prototype.buttonClick = function (buttonDiv) {
+    buttonDiv.onclick = function(){
+        console.log(buttonDiv.innerHTML)
+        toolEventHandler.buttonClick(buttonDiv.innerHTML)
+    }
 }
 ToolEventBinder.prototype.initFontFamily=function(fontFamilySelect){
     var toolEventBinder=this
     fontFamilySelect.onchange=function(){
         var fontFamily=fontFamilySelect.value
         toolEventBinder.fontValue=fontFamily
-        toolEventBinder.fontType='family'
+        toolEventBinder.fontType='font'
         toolEventHandler.setFont(toolEventBinder)
         fontFamilySelect.value='-----'
     }
@@ -905,7 +1331,7 @@ ToolEventBinder.prototype.initFontSize=function(fontSizeSelect){
     fontSizeSelect.onchange=function(){
         var fontSize=fontSizeSelect.value
         toolEventBinder.fontValue=fontSize
-        toolEventBinder.fontType='size'
+        toolEventBinder.fontType='fontSize'
         toolEventHandler.setFont(toolEventBinder)
         fontSizeSelect.value='-----'
     }
@@ -915,7 +1341,7 @@ ToolEventBinder.prototype.initFontWeight=function(fontWeightDiv){
     fontWeightDiv.onclick=function(){
         config.WSConfig.isFont=false
         toolEventBinder.fontValue='bold'
-        toolEventBinder.fontType='weight'
+        toolEventBinder.fontType='bold'
         toolEventHandler.setFont(toolEventBinder)
         if(config.WSConfig.isFont){
             toolEventHandler.setFont(toolEventBinder)
@@ -927,7 +1353,7 @@ ToolEventBinder.prototype.initFontStyle=function(fontStyleDiv){
     fontStyleDiv.onclick=function(){
         config.WSConfig.isFont=false
         toolEventBinder.fontValue='italic'
-        toolEventBinder.fontType='style'
+        toolEventBinder.fontType='italic'
         toolEventHandler.setFont(toolEventBinder)
         if(config.WSConfig.isFont){
             toolEventHandler.setFont(toolEventBinder)
@@ -939,7 +1365,7 @@ ToolEventBinder.prototype.initColor=function(colorDiv){
     colorDiv.onclick=function(){
         var colorSelectDiv=document.getElementById('colorSelect')
         if(colorSelectDiv.style.display=='none'||toolEventBinder.fontType=='backgroundColor'){
-            toolEventBinder.fontType='color'
+            toolEventBinder.fontType='foregroundColor'
             colorSelectDiv.style.display='block'
             var left=this.offsetLeft
             var top=this.offsetTop
@@ -955,7 +1381,7 @@ ToolEventBinder.prototype.initBackgroundColor=function(backgroundColorDiv){
     var toolEventBinder=this
     backgroundColorDiv.onclick=function(){
         var colorSelectDiv=document.getElementById('colorSelect')
-        if(colorSelectDiv.style.display=='none'||toolEventBinder.fontType=='color'){
+        if(colorSelectDiv.style.display=='none'||toolEventBinder.fontType=='foregroundColor'){
             toolEventBinder.fontType='backgroundColor'
             colorSelectDiv.style.display='block'
             var left=this.offsetLeft
@@ -965,7 +1391,6 @@ ToolEventBinder.prototype.initBackgroundColor=function(backgroundColorDiv){
         }else{
             colorSelectDiv.style.display='none'
         }
-
     }
 }
 ToolEventBinder.prototype.initColorSelect=function(td){
@@ -1000,29 +1425,95 @@ ToolEventBinder.prototype.initTextAlign=function(textAlignSelect){
     textAlignSelect.onchange=function(){
         var textAlign=textAlignSelect.value
         toolEventBinder.fontValue=textAlign
-        toolEventBinder.fontType='textAlign'
+        toolEventBinder.fontType='alignment'
         toolEventHandler.setFont(toolEventBinder)
         textAlignSelect.value='-----'
+    }
+}
+ToolEventBinder.prototype.initFileInput=function(fileInput){
+    fileInput.onchange=function(){
+        var ajax
+        if(window.XMLHttpRequest){
+            ajax = new XMLHttpRequest()
+        }else if(window.ActiveXObject){
+            ajax = new window.ActiveXObject()
+        }else{
+            alert("请升级至最新版本的浏览器")
+        }
+        if(ajax !=null){
+            ajax.open("GET","json",true)
+            ajax.send(null)
+            ajax.onreadystatechange=function(){
+                if(ajax.readyState==4&&ajax.status==200){
+                    var CellList = JSON.parse(ajax.responseText)
+                    CellList.forEach(function(e){
+                        for (var key in e) {
+                            cellRender.renderCell(e['cellName'],key,e[key])
+                        }
+                    })
+                }
+            }
+        }
     }
 }
 module.exports.ToolEventBinder=ToolEventBinder
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  * 工具栏事件
  */
 var config = __webpack_require__(0)
+
 var UtilModule=__webpack_require__(1)
 var Util=UtilModule.Util
 var util=new Util()
 
-var ToolEventHandler=function(sheet){
-    this.sheet=sheet
-}
+var CellRenderModule = __webpack_require__(3)
+var CellRender=CellRenderModule.CellRender
+var cellRender=null
 
+var ToolEventHandler = function(sheet){
+    this.sheet=sheet
+    cellRender=new CellRender(sheet)
+}
+ToolEventHandler.prototype.buttonClick = function(action){
+    console.log(action)
+    switch(action){
+        case "autoLF":
+            var sheet = this.sheet
+            if(sheet.range){
+                console.log('a')
+                var firstCell=sheet.range.split(':')[0]
+                var lastCell=sheet.range.split(':')[1]
+                var cells=util.getColAndRow(document.getElementById(firstCell),
+                    document.getElementById(lastCell))
+                if(cells!=null){
+                    for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
+                        for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
+                            var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
+                            if(sheet.cells[ele.id]){
+                                sheet.cells[ele.id].autoLF = !sheet.cells[ele.id].autoLF
+                                if(sheet.cells[ele.id].autoLF){
+                                    ele.width = sheet.cells[ele.id].width
+                                    console.log(ele.width)
+                                }
+                                else{
+                                    ele.width = sheet.cells[ele.id].viewWidth
+                                    console.log(ele.width)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break
+        default:
+            break
+    }
+}
 ToolEventHandler.prototype.setFont=function(toolEventBinder){
     var sheet=this.sheet
     var fontType=toolEventBinder.fontType
@@ -1034,215 +1525,27 @@ ToolEventHandler.prototype.setFont=function(toolEventBinder){
             document.getElementById(lastCell))
         if(cells!=null) {
             if(fontType=='merge'){
-                mergeCell(firstCell,lastCell,cells,sheet)
+                cellRender.renderCell(null,'area',sheet.range)
             }else if(fontType=='border'){
-                setFontBorder(cells,fontValue)
+                cellRender.renderCell(null,'frame',fontValue)
             }else{
                 for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++){
                     for(var j=cells.firstCellRow;j<=cells.lastCellRow;j++){
-                        var ele = document.getElementById(String.fromCharCode(i) + '_' + j).firstChild
-                        if(fontType=='family'){
-                            setFontFamily(ele,fontValue)
-                        }else if(fontType=='size'){
-                            setFontSize(ele,fontValue)
-                        }else if(fontType=='weight'){
-                            setFontWeight(ele,fontValue)
-                        }else if(fontType=='style'){
-                            setFontStyle(ele,fontValue)
-                        }else if(fontType=='color'){
-                            setFontColor(ele,fontValue)
-                        }else if(fontType=='backgroundColor'){
-                            setFontBackgroundColor(ele,fontValue)
-                        }else if(fontType=='textAlign'){
-                        setTextAlign(ele,fontValue)
-                    }
+                        var id = String.fromCharCode(i) + '_' + j
+                        cellRender.renderCell(id,fontType,fontValue)
                     }
                 }
             }
         }
     }
 }
-function setFontFamily(ele,fontFamily) {
-    if(fontFamily=='Default'){
-        fontFamily=''
-    }
-    ele.style.fontFamily=fontFamily
-}
-function setFontSize(ele,fontSize){
-    if(fontSize=='Default'||fontSize=='-----'){
-        fontSize=''
-    }
-    ele.style.fontSize=fontSize
-}
-function setFontWeight(ele,fontWeight){
-    if(!config.WSConfig.isFont){
-        if(ele.style.fontWeight!=''){
-            fontWeight=''
-        }else{
-            config.WSConfig.isFont=true
-        }
-    }
-
-    ele.style.fontWeight=fontWeight
-}
-function setFontStyle(ele,fontStyle){
-    if(!config.WSConfig.isFont){
-        if(ele.style.fontStyle!=''){
-            fontStyle=''
-        }else{
-            config.WSConfig.isFont=true
-        }
-    }
-
-    ele.style.fontStyle=fontStyle
-}
-function setFontColor(ele,fontColor){
-    ele.backBackgroundColor=fontColor
-    ele.parentNode.style.color=fontColor
-}
-function setFontBackgroundColor(ele,fontBackgroundColor){
-    ele.parentNode.backBackgroundColor=fontBackgroundColor
-    ele.parentNode.style.backgroundColor=fontBackgroundColor
-}
-function mergeCell(firstCell,lastCell,cells,sheet){
-    var newCell=document.getElementById(String.fromCharCode(cells.firstCellCol)+"_"+cells.firstCellRow)
-    if(firstCell!=lastCell){
-       var colSpanNum=0
-       var rowSpanNum=0
-        for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
-            var newRowSpanNum=0
-            for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
-                newRowSpanNum++
-                if(i!=cells.firstCellCol||j!=cells.firstCellRow){
-                    var ele=document.getElementById(String.fromCharCode(i) + '_' + j)
-                    if(ele){
-                        ele .style.display='none'
-                    }
-                }
-                if(i==cells.lastCellCol&&newCell.colSpan>colSpanNum){
-                    for(var num=1;num<(newCell.colSpan-colSpanNum);num++){
-                        var ele=document.getElementById(String.fromCharCode(i+num) + '_' + j)
-                        if(ele){
-                            ele .style.display='none'
-                        }
-                    }
-                }
-            }
-            if(newRowSpanNum>=rowSpanNum){
-                rowSpanNum=newRowSpanNum
-            }
-            if(newCell.rowSpan>rowSpanNum){
-                for(var num=0;num<(newCell.rowSpan-rowSpanNum);num++){
-                    var ele=document.getElementById(String.fromCharCode(i) + '_' + (j+num))
-                    if(ele){
-                        ele .style.display='none'
-                }
-                }
-            }
-            colSpanNum++
-        }
-        if(rowSpanNum>newCell.rowSpan){
-            newCell.rowSpan=rowSpanNum
-        }
-        if(colSpanNum>newCell.colSpan){
-            newCell.colSpan=colSpanNum
-        }
-        sheet.range=newCell.id+":"+newCell.id
-    }else{
-        var colNum=newCell.colSpan
-        var rowNum=newCell.rowSpan
-        for(var i=0;i<colNum;i++) {
-            for (var j = 0; j <rowNum; j++) {
-                var id=String.fromCharCode(cells.firstCellCol+i) + '_' + (cells.firstCellRow+j)
-                var ele=document.getElementById(id)
-                if(ele){
-                    ele.colSpan=1
-                    ele.rowSpan=1
-                    ele .style.display='table-cell'
-                }
-            }
-        }
-    }
-}
-function setFontBorder(cells,fontValue){
-    // '-----','左边框','上边框','右边框','下边框','外侧边框','无边框','全边框'
-    for(var i=cells.firstCellCol;i<=cells.lastCellCol;i++) {
-        for (var j = cells.firstCellRow; j <= cells.lastCellRow; j++) {
-            var ele = document.getElementById(String.fromCharCode(i) + '_' + j)
-            if(fontValue=='无边框'){
-                ele.style.border='1px solid #ccc'
-                var colSpan=ele.colSpan
-                for(var z=0;z<colSpan;z++) {
-                    ele = document.getElementById(String.fromCharCode(i + z) + '_' + (j - 1))
-                    if(ele){
-                        ele.style.borderBottom = '1px solid #ccc'
-                    }
-                }
-                ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
-                if(ele){
-                    ele.style.borderRight='1px solid #ccc'
-                }
-            }else if(fontValue=='全边框'){
-                ele.style.border='1px solid #000'
-                var colSpan=ele.colSpan
-                for(var z=0;z<colSpan;z++){
-                    ele = document.getElementById(String.fromCharCode(i+z) + '_' + (j-1))
-                    if(ele){
-                        ele.style.borderBottom='1px solid #000'
-                    }
-                }
-                ele = document.getElementById(String.fromCharCode(i-1) + '_' + j)
-                if(ele){
-                    ele.style.borderRight='1px solid #000'
-                }
-
-
-            }else{
-                if(i==cells.firstCellCol&&(fontValue=='左边框'||fontValue=='外侧边框')){
-                    var eleNew = document.getElementById(String.fromCharCode(i-1) + '_' + j)
-                    if(eleNew){
-                        eleNew.style.borderRight='1px solid #000'
-                    }
-
-                }
-                if(j == cells.firstCellRow&&(fontValue=='上边框'||fontValue=='外侧边框')){
-                    var colSpan=ele.colSpan
-                    for(var z=0;z<colSpan;z++){
-                        var eleNew = document.getElementById(String.fromCharCode(i+z) + '_' + (j-1))
-                        if(eleNew){
-                            eleNew.style.borderBottom='1px solid #000'
-                        }
-
-                    }
-                }
-                if(i==cells.lastCellCol&&(fontValue=='右边框'||fontValue=='外侧边框')){
-                    ele.style.borderRight='1px solid #000'
-                }
-                if(j == cells.lastCellRow&&(fontValue=='下边框'||fontValue=='外侧边框')){
-                    ele.style.borderBottom='1px solid #000'
-                }
-            }
-        }
-    }
-}
-function setTextAlign(ele,textAlign){
-    //'-----','左对齐','居中','右对齐'
-    if(textAlign=='左对齐'){
-        ele.style.textAlign='left'
-    }else if(textAlign=='居中'){
-        ele.style.textAlign='center'
-    }else if(textAlign=='右对齐'){
-        ele.style.textAlign='right'
-    }
-}
-
 
 
 
 module.exports.ToolEventHandler = ToolEventHandler
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -1253,30 +1556,38 @@ var ToolRender=function(sheet){
     this.sheet=sheet
 }
 ToolRender.prototype.init=function(toolDiv,width,height){
+    var ToolEventBinderModule = __webpack_require__(11)
+    var ToolEventBinder=ToolEventBinderModule.ToolEventBinder
+    var toolEventBinder=new ToolEventBinder(this.sheet)
+
     toolDiv.style.width = width + 'px'
     toolDiv.style.height = height + 'px'
     toolDiv.style.backgroundColor = '#aaaaaa'
     //sheetToolDiv.innerHTML = "&#xe900;&#xe901;&#xe14d;&#xe14e;&#xe14f;"
-    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f"]
+    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f","autoLF"]
     //渲染工具栏具体button按钮
     html.forEach(function(innerhtml){
         var buttonDiv = document.createElement('div')
         buttonDiv.style.display = "inline"
         buttonDiv.innerHTML=innerhtml
+        buttonDiv.style.cursor='pointer'
+        buttonDiv.style.marginLeft='10px'
 
         buttonDiv.onclick = function(){
-            // eventHandle.buttonClick(innerhtml)
+            toolEventBinder.buttonClick(buttonDiv)
         }
         toolDiv.appendChild(buttonDiv)
     })
 
-    var ToolEventBinderModule = __webpack_require__(10)
-    var ToolEventBinder=ToolEventBinderModule.ToolEventBinder
-    var toolEventBinder=new ToolEventBinder(this.sheet)
-
     renderFont(toolEventBinder,toolDiv)
     renderColorAndBackgroundColor(toolEventBinder,toolDiv)
     renderColorSelect(toolEventBinder,toolDiv)
+
+    var fileInput=document.createElement('input')
+    fileInput.type='file'
+    fileInput.style.marginLeft='10px'
+    toolEventBinder.initFileInput(fileInput)
+    toolDiv.appendChild(fileInput)
 
 }
 
@@ -1352,7 +1663,7 @@ function renderFont(toolEventBinder,toolDiv){
     //字体位置
     var textAlignSelect=document.createElement('select')
     textAlignSelect.style.marginLeft='10px'
-    var textAlignOption=['-----','左对齐','居中','右对齐']
+    var textAlignOption=['-----','左对齐','居中对齐','右对齐']
     textAlignOption.forEach(function(o){
         var option=document.createElement('option')
         option.innerHTML=o
@@ -1461,7 +1772,7 @@ function makeRGB(r, g, b) {
 module.exports.ToolRender = ToolRender
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports) {
 
 /**
@@ -1492,7 +1803,7 @@ UndoStack.prototype.unDo = function(){
 module.exports.UndoStack = UndoStack
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -1516,7 +1827,7 @@ WSRender.prototype.init=function () {
     this.parNode.appendChild(WSDiv)
 
     //tool
-    var ToolRenderModule = __webpack_require__(12)
+    var ToolRenderModule = __webpack_require__(13)
     var ToolRender = ToolRenderModule.ToolRender
     var toolRender=new ToolRender(ws.Sheet)
     var tool = ws.Tool
@@ -1525,7 +1836,7 @@ WSRender.prototype.init=function () {
     WSDiv.appendChild(toolDiv)
 
     //sheet
-    var SheetRenderModule= __webpack_require__(8)
+    var SheetRenderModule= __webpack_require__(9)
     var SheetRender= SheetRenderModule.SheetRender
     var sheetRender=new SheetRender(ws.Sheet)
     var sheet=ws.Sheet
@@ -1536,7 +1847,7 @@ WSRender.prototype.init=function () {
 module.exports.WSRender = WSRender
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
