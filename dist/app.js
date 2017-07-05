@@ -218,82 +218,15 @@ module.exports.CellConfig = CellConfig
 
 /***/ }),
 /* 1 */
-/***/ (function(module, exports) {
-
-
-var Util=function(){
-
-}
-/**
- * 将第一个单元格和最后一个单元格进行排序
- * @param firstCell
- * @param lastCell
- * @returns {*}
- */
-Util.prototype.getColAndRow=function(firstCell,lastCell){
-    var result=null
-    if(firstCell&&firstCell.id&&lastCell&&lastCell.id) {
-        result=new Object()
-        result.firstCellCol = firstCell.id.split('_')[0].charCodeAt(0)
-        result.firstCellRow = parseInt(firstCell.id.split('_')[1])
-        result.lastCellCol = lastCell.id.split('_')[0].charCodeAt(0)
-        result.lastCellRow = parseInt(lastCell.id.split('_')[1])
-        if( result.firstCellCol> result.lastCellCol){
-            var newFirstCellCol=result.firstCellCol
-            result.firstCellCol=result.lastCellCol
-            result.lastCellCol=newFirstCellCol
-        }
-        if( result.firstCellRow> result.lastCellRow){
-            var newFirstCellRow=result.firstCellRow
-            result.firstCellRow=result.lastCellRow
-            result.lastCellRow=newFirstCellRow
-        }
-
-    }
-    return result
-}
-
-
-module.exports.Util=Util
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * 单元格对象
- */
-
-var configModule = __webpack_require__(0)
-
-var cellConfig = configModule.CellConfig
-
-var Cell = function (coord) {
-
-	//成员属性
-	//设置默认值
-	this.autoLF = false
-	this.viewWidth = 0
-	this.height = cellConfig.height
-	this.width = cellConfig.width
-
-	this.text = null
-	this.coord = coord
-}
-
-module.exports.Cell = Cell
-
-/***/ }),
-/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var config = __webpack_require__(0)
 
-var UtilModule=__webpack_require__(1)
+var UtilModule=__webpack_require__(2)
 var Util=UtilModule.Util
 var util=new Util()
 
-var CellModule = __webpack_require__(2)
+var CellModule = __webpack_require__(3)
 var Cell=CellModule.Cell
 
 var CellRender = function (sheet) {
@@ -646,6 +579,73 @@ CellRender.prototype.setFontBorder=function(cells,fontValue,fontType){
 module.exports.CellRender = CellRender
 
 /***/ }),
+/* 2 */
+/***/ (function(module, exports) {
+
+
+var Util=function(){
+
+}
+/**
+ * 将第一个单元格和最后一个单元格进行排序
+ * @param firstCell
+ * @param lastCell
+ * @returns {*}
+ */
+Util.prototype.getColAndRow=function(firstCell,lastCell){
+    var result=null
+    if(firstCell&&firstCell.id&&lastCell&&lastCell.id) {
+        result=new Object()
+        result.firstCellCol = firstCell.id.split('_')[0].charCodeAt(0)
+        result.firstCellRow = parseInt(firstCell.id.split('_')[1])
+        result.lastCellCol = lastCell.id.split('_')[0].charCodeAt(0)
+        result.lastCellRow = parseInt(lastCell.id.split('_')[1])
+        if( result.firstCellCol> result.lastCellCol){
+            var newFirstCellCol=result.firstCellCol
+            result.firstCellCol=result.lastCellCol
+            result.lastCellCol=newFirstCellCol
+        }
+        if( result.firstCellRow> result.lastCellRow){
+            var newFirstCellRow=result.firstCellRow
+            result.firstCellRow=result.lastCellRow
+            result.lastCellRow=newFirstCellRow
+        }
+
+    }
+    return result
+}
+
+
+module.exports.Util=Util
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * 单元格对象
+ */
+
+var configModule = __webpack_require__(0)
+
+var cellConfig = configModule.CellConfig
+
+var Cell = function (coord) {
+
+	//成员属性
+	//设置默认值
+	this.autoLF = false
+	this.viewWidth = 0
+	this.height = cellConfig.height
+	this.width = cellConfig.width
+
+	this.text = null
+	this.coord = coord
+}
+
+module.exports.Cell = Cell
+
+/***/ }),
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -752,8 +752,7 @@ var SheetEventBinder = function (sheet) {
         config.WSConfig.isMouseDown=false
     }
     document.onkeydown = function (event) {
-
-        if(sheetEventHandler.firstCell){
+        if(sheetEventHandler.firstCell.id){
             sheetEventHandler.keyDown(sheetEventHandler.firstCell,event)
         }
     }
@@ -792,16 +791,21 @@ module.exports.SheetEventBinder=SheetEventBinder
 
 //鼠标和键盘事件
 var config = __webpack_require__(0)
-var CellModule = __webpack_require__(2)
+var CellModule = __webpack_require__(3)
 var Cell=CellModule.Cell
-var UtilModule=__webpack_require__(1)
+var UtilModule=__webpack_require__(2)
 var Util=UtilModule.Util
 var util=new Util()
+
+var CellRenderModule=__webpack_require__(1)
+var CellRender=CellRenderModule.CellRender
+var cellRender=null
 
 var SheetEventHandler = function (sheet) {
     this.firstCell = null
     this.lastCell = null
     this.sheet=sheet
+    cellRender=new CellRender(sheet)
 }
 /**
  * 鼠标按下事件
@@ -813,7 +817,7 @@ SheetEventHandler.prototype.mouseDown = function(element){
     cellPropDiv.innerHTML=''
     this.setCellBackgroundColor('#fff')
     if(element.id){
-        setCellProp(element,this.sheet.cells[element.id])
+        this.setCellProp(element,this.sheet.cells[element.id])
         this.firstCell = element
         config.WSConfig.isMouseDown=true
     }
@@ -951,7 +955,6 @@ SheetEventHandler.prototype.setCellBackgroundColor=function(backgroundColor){
 SheetEventHandler.prototype.keyDown = function(element,event){
     var col=element.id.split('_')[0]
     var row=element.id.split('_')[1]
-
     switch (event.which) {
         case 37://左键
             if(!config.isEditing){
@@ -1082,7 +1085,7 @@ SheetEventHandler.prototype.keyDown = function(element,event){
             }
     }
 }
-function setCellProp(element,e){
+SheetEventHandler.prototype.setCellProp=function(element,e){
     if(e){
         var cellPropDiv=document.getElementById("cellProp")
         cellPropDiv.style.display='block'
@@ -1101,14 +1104,78 @@ function setCellProp(element,e){
         th.innerHTML='属性值'
         tr.appendChild(th)
         for (var key in e) {
-            var tr=document.createElement('tr')
-            cellPropTable.appendChild(tr)
-            var td=document.createElement('td')
-            td.innerHTML=key
-            tr.appendChild(td)
-            var td=document.createElement('td')
-            td.innerHTML=e[key]
-            tr.appendChild(td)
+            if(e[key]!=''){
+                var tr=document.createElement('tr')
+                cellPropTable.appendChild(tr)
+                var td=document.createElement('td')
+                td.innerHTML=key
+                tr.appendChild(td)
+                var td=document.createElement('td')
+                td.innerHTML=e[key]
+                tr.appendChild(td)
+            }
+        }
+        this.addProp(element,cellPropTable)
+    }
+}
+SheetEventHandler.prototype.addProp=function(ele,cellPropTable){
+    var SheetEventHandler=this
+    var tr=document.createElement('tr')
+    cellPropTable.appendChild(tr)
+    var td=document.createElement('td')
+    var inputTd1=document.createElement('input')
+    inputTd1.setAttribute('list','prop')
+    td.appendChild(inputTd1)
+    var datalist=document.createElement('datalist')
+    datalist.id='prop'
+    td.appendChild(datalist)
+    var option=document.createElement('option')
+    option.value='foregroundColor'
+    datalist.appendChild(option)
+    option=document.createElement('option')
+    option.value='bold'
+    datalist.appendChild(option)
+    option=document.createElement('option')
+    option.value='backgroundColor'
+    datalist.appendChild(option)
+    option=document.createElement('option')
+    option.value='italic'
+    datalist.appendChild(option)
+    option=document.createElement('option')
+    option.value='fontSize'
+    datalist.appendChild(option)
+    tr.appendChild(td)
+    var td=document.createElement('td')
+    var inputTd2=document.createElement('input')
+    td.appendChild(inputTd2)
+    tr.appendChild(td)
+    inputTd1.onclick=function(){
+        SheetEventHandler.firstCell=this
+    }
+    inputTd2.onclick=function(){
+        SheetEventHandler.firstCell=this
+    }
+    inputTd1.onblur=function(){
+        SheetEventHandler.firstCell=ele
+        var input2=this.parentNode.nextSibling.firstChild
+        if(inputTd1.value!=null &&inputTd1.value !=''
+            &&input2.value!=null &&input2.value !=''){
+            cellRender.renderCell(ele.id,inputTd1.value,input2.value)
+            if(!this.parentNode.parentNode.nextSibling){
+                SheetEventHandler.addProp(ele,cellPropTable)
+            }
+        }
+
+    }
+    inputTd2.onblur=function(){
+        SheetEventHandler.firstCell=ele
+        var input1=this.parentNode.previousSibling.firstChild
+        if(input1.value!=null &&input1.value !=''
+            &&inputTd2.value!=null &&inputTd2.value !=''){
+            cellRender.renderCell(ele.id,input1.value,inputTd2.value)
+            if(!this.parentNode.parentNode.nextSibling){
+                SheetEventHandler.addProp(ele,cellPropTable)
+            }
         }
     }
 }
@@ -1301,7 +1368,7 @@ var ToolEventHandlerModule=__webpack_require__(12)
 var ToolEventHandler = ToolEventHandlerModule.ToolEventHandler
 var toolEventHandler=null
 
-var CellRenderModule=__webpack_require__(3)
+var CellRenderModule=__webpack_require__(1)
 var CellRender=CellRenderModule.CellRender
 var cellRender=null
 
@@ -1441,13 +1508,18 @@ ToolEventBinder.prototype.initFileInput=function(fileInput){
             alert("请升级至最新版本的浏览器")
         }
         if(ajax !=null){
-            $.get("json.json", function (data, status) {
-                data.forEach(function(e){
-                    for (var key in e) {
-                        cellRender.renderCell(e['cellName'],key,e[key])
-                    }
-                })
-            })
+            ajax.open("GET","json.json",true)
+            ajax.send(null)
+            ajax.onreadystatechange=function(){
+                if(ajax.readyState==4&&ajax.status==200){
+                    var CellList = JSON.parse(ajax.responseText)
+                    CellList.forEach(function(e){
+                        for (var key in e) {
+                            cellRender.renderCell(e['cellName'],key,e[key])
+                        }
+                    })
+                }
+            }
         }
     }
 }
@@ -1462,11 +1534,11 @@ module.exports.ToolEventBinder=ToolEventBinder
  */
 var config = __webpack_require__(0)
 
-var UtilModule=__webpack_require__(1)
+var UtilModule=__webpack_require__(2)
 var Util=UtilModule.Util
 var util=new Util()
 
-var CellRenderModule = __webpack_require__(3)
+var CellRenderModule = __webpack_require__(1)
 var CellRender=CellRenderModule.CellRender
 var cellRender=null
 
@@ -1504,6 +1576,9 @@ ToolEventHandler.prototype.buttonClick = function(action){
                     }
                 }
             }
+            break
+        case "Preview":
+
             break
         default:
             break
@@ -1559,7 +1634,7 @@ ToolRender.prototype.init=function(toolDiv,width,height){
     toolDiv.style.height = height + 'px'
     toolDiv.style.backgroundColor = '#aaaaaa'
     //sheetToolDiv.innerHTML = "&#xe900;&#xe901;&#xe14d;&#xe14e;&#xe14f;"
-    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f","autoLF"]
+    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f","autoLF","Preview"]
     //渲染工具栏具体button按钮
     html.forEach(function(innerhtml){
         var buttonDiv = document.createElement('div')
@@ -1569,7 +1644,7 @@ ToolRender.prototype.init=function(toolDiv,width,height){
         buttonDiv.style.marginLeft='10px'
 
         buttonDiv.onclick = function(){
-            toolEventBinder.buttonClick(buttonDiv)
+            toolEventBinder.buttonClick(this)
         }
         toolDiv.appendChild(buttonDiv)
     })
