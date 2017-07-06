@@ -89,7 +89,8 @@ var WSConfig = {
 	isKeyDown:true,
 	isEditing:false,
 	editCell:null,
-	isFont:false
+	isFont:false,
+	isPreview:false
 }
 
 /**
@@ -220,13 +221,59 @@ module.exports.CellConfig = CellConfig
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
+/**
+ * 整体工作管理对象
+ * @constructor
+ */
+var WSManager = function () {}
+
+WSManager.prototype.init = function (parentNode) {
+
+    //实例化初始化Tool对象
+    var ToolModule = __webpack_require__(10)
+    var Tool=ToolModule.Tool
+    var tool=new Tool()
+
+    //实例化初始化UndoStack对象
+    var UndoStackModule =__webpack_require__(14)
+    var UndoStack = UndoStackModule.UndoStack
+    var undoStack = new UndoStack()
+
+    //实例化初始化Sheet对象
+    var SheetModule = __webpack_require__(6)
+    var Sheet =SheetModule.Sheet
+    var sheet=new Sheet(undoStack)
+
+    //实例化初始化Workspace对象
+    var WorkspaceModule = __webpack_require__(16)
+    var Workspace = WorkspaceModule.Workspace
+    this.workspace=new Workspace(tool,sheet)
+
+    //实例化初始化WSRender对象
+    var WSRenderModule = __webpack_require__(15)
+    var WSRender = WSRenderModule.WSRender
+    var wsRender=new WSRender(this,parentNode)
+
+    wsRender.init()
+
+    if(parentNode.getAttribute("url")){
+        document.getElementById("Init").onclick()
+    }
+}
+
+module.exports.WSManager = WSManager
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
 var config = __webpack_require__(0)
 
-var UtilModule=__webpack_require__(2)
+var UtilModule=__webpack_require__(3)
 var Util=UtilModule.Util
 var util=new Util()
 
-var CellModule = __webpack_require__(3)
+var CellModule = __webpack_require__(4)
 var Cell=CellModule.Cell
 
 var CellRender = function (sheet) {
@@ -260,9 +307,11 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                     var index=lastCell.search(/\d/)
                     lastCell=lastCell.substring(0,index)+'_'+lastCell.substring(index,lastCell.length)
                     sheet.range=firstCell+':'+lastCell
+                    value=firstCell+':'+lastCell
                 }
-                var firstCell=sheet.range.split(':')[0]
-                var lastCell=sheet.range.split(':')[1]
+                this.sheet.cells[id].area=value
+                var firstCell=value.split(':')[0]
+                var lastCell=value.split(':')[1]
                 var cells=util.getColAndRow(document.getElementById(firstCell),
                     document.getElementById(lastCell))
                 this.mergeCell(firstCell,lastCell,cells,this.sheet)
@@ -288,7 +337,7 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                     value=''
                 }
                 ele.firstChild.innerHTML=value
-                this.sheet.cells[id].text=value
+                this.sheet.cells[id].content=value
                 break
             //字体
             case "font":
@@ -323,7 +372,7 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                     }
                 }
                 ele.style.fontWeight=value
-                this.sheet.cells[id].fontWeight=value
+                this.sheet.cells[id].bold=value
                 break
             //斜体
             case "italic":
@@ -336,7 +385,7 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                 }
 
                 ele.style.fontStyle=value
-                this.sheet.cells[id].fontStyle=value
+                this.sheet.cells[id].italic=value
                 break
             //对齐方向
             case "alignment":
@@ -348,23 +397,23 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                     value='right'
                 }
                 ele.style.textAlign=value
-                this.sheet.cells[id].textAlign=value
+                this.sheet.cells[id].alignment=value
                 break
             //边框
             case "bottomFrame":
-                if(value=='有'){
+                if(value=='有'||value=='bottom'){
                     value='bottom_bottomFrame'
                 }
             case "leftFrame":
-                if(value=='有'){
+                if(value=='有'||value=='left'){
                     value='left_leftFrame'
                 }
             case "rightFrame":
-                if(value=='有'){
+                if(value=='有'||value=='right'){
                     value='right_rightFrame'
                 }
             case "topFrame":
-                if(value=='有'){
+                if(value=='有'||value=='top'){
                     value='top_topFrame'
 
                 }
@@ -399,7 +448,7 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                 for(var i=0;i<value;i++){
                     html+='&nbsp;'
                 }
-                ele.firstChild.innerHTML=html+this.sheet.cells[id].text
+                ele.firstChild.innerHTML=html+this.sheet.cells[id].content
                 this.sheet.cells[id].indentation=value
                 break
         }
@@ -579,7 +628,7 @@ CellRender.prototype.setFontBorder=function(cells,fontValue,fontType){
 module.exports.CellRender = CellRender
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports) {
 
 
@@ -619,7 +668,7 @@ Util.prototype.getColAndRow=function(firstCell,lastCell){
 module.exports.Util=Util
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -639,53 +688,10 @@ var Cell = function (coord) {
 	this.height = cellConfig.height
 	this.width = cellConfig.width
 
-	this.text = null
 	this.coord = coord
 }
 
 module.exports.Cell = Cell
-
-/***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * 整体工作管理对象
- * @constructor
- */
-var WSManager = function () {}
-
-WSManager.prototype.init = function (parentNode) {
-
-    //实例化初始化Tool对象
-    var ToolModule = __webpack_require__(10)
-    var Tool=ToolModule.Tool
-    var tool=new Tool()
-
-    //实例化初始化UndoStack对象
-    var UndoStackModule =__webpack_require__(14)
-    var UndoStack = UndoStackModule.UndoStack
-    var undoStack = new UndoStack()
-
-    //实例化初始化Sheet对象
-    var SheetModule = __webpack_require__(6)
-    var Sheet =SheetModule.Sheet
-    var sheet=new Sheet(undoStack)
-
-    //实例化初始化Workspace对象
-    var WorkspaceModule = __webpack_require__(16)
-    var Workspace = WorkspaceModule.Workspace
-    this.workspace=new Workspace(tool,sheet)
-
-    //实例化初始化WSRender对象
-    var WSRenderModule = __webpack_require__(15)
-    var WSRender = WSRenderModule.WSRender
-    var wsRender=new WSRender(this,parentNode)
-
-    wsRender.init()
-}
-
-module.exports.WSManager = WSManager
 
 /***/ }),
 /* 5 */
@@ -695,14 +701,26 @@ module.exports.WSManager = WSManager
  * Created by Ian on 17/6/5.
  */
 
-var WSManagerModule = __webpack_require__(4)
+var WSManagerModule = __webpack_require__(1)
 var WSManager = WSManagerModule.WSManager
 var wsManager=new WSManager()
 
 var parentNode = document.getElementById('QianMoApp')
 
-wsManager.init(parentNode)
+var myUrl=GetQueryString("url")
+if(myUrl!=null && myUrl.toString().length>1){
+    parentNode.setAttribute('url',myUrl)
+}
+function GetQueryString(name){
+    var reg=new RegExp("(^|&)"+name+"=([^&]*)(&|$)")
+    var r=window.location.search.substring(1).match(reg)
+    if(r!=null){
+        return unescape(r[2])
+    }
+    return null
+}
 
+wsManager.init(parentNode)
 
 /***/ }),
 /* 6 */
@@ -791,13 +809,13 @@ module.exports.SheetEventBinder=SheetEventBinder
 
 //鼠标和键盘事件
 var config = __webpack_require__(0)
-var CellModule = __webpack_require__(3)
+var CellModule = __webpack_require__(4)
 var Cell=CellModule.Cell
-var UtilModule=__webpack_require__(2)
+var UtilModule=__webpack_require__(3)
 var Util=UtilModule.Util
 var util=new Util()
 
-var CellRenderModule=__webpack_require__(1)
+var CellRenderModule=__webpack_require__(2)
 var CellRender=CellRenderModule.CellRender
 var cellRender=null
 
@@ -867,7 +885,7 @@ SheetEventHandler.prototype.dblclick = function(element){
         input.style.height = element.offsetHeight + 'px'
         input.style.width = element.offsetWidth + 'px'
         if(this.sheet.cells[element.id]){
-            input.value = this.sheet.cells[element.id].text
+            input.value = this.sheet.cells[element.id].content
         }
         else{
             input.value = ''
@@ -886,7 +904,7 @@ SheetEventHandler.prototype.inputBlur = function () {
         if(!this.sheet.cells[ele.id]) {
             this.sheet.cells[ele.id] = new Cell(ele.id)
         }
-        this.sheet.cells[ele.id].text = input.value
+        this.sheet.cells[ele.id].content = input.value
         ele.firstChild.innerHTML = input.value
         var sp = document.getElementById('sp')
         sp.value = input.value
@@ -1064,7 +1082,7 @@ SheetEventHandler.prototype.keyDown = function(element,event){
                             if(!sheet.cells[cell.id]) {
                                 sheet.cells[cell.id] = new Cell(cell)
                             }
-                            sheet.cells[cell.id].text = vv[j]
+                            sheet.cells[cell.id].content = vv[j]
                             //还需要给cell height和width
                         }
 
@@ -1213,8 +1231,6 @@ SheetRender.prototype.init = function (sheetDiv) {
 	var sheetTable = document.createElement('table')
     sheetTable.style.userSelect = 'none'
     sheetDiv.appendChild(sheetTable)
-	//sheetTable.style.width = 'auto'//this.sheet.width + 'px'
-	//sheetTable.style.height = 'auto'//this.sheet.height + 'px'
     var cellPropDiv=document.createElement("div")
     cellPropDiv.id='cellProp'
     // cellPropDiv.style.display='none'
@@ -1262,10 +1278,6 @@ function createHeader(rowNum, colNum) {
  */
 function renderSheet(sheet, sheetTable) {
 	var gridHeader = createHeader(sheet.rowNum,  sheet.colNum)
-	// var cellHeight = config.CellConfig.height
-	// var cellWidth = config.CellConfig.width
-	// var	headWidth = config.SheetConfig.headWidth
-	// var	headHeight = config.SheetConfig.headHeight
 
 	var rowNum = gridHeader.length
 	var colNum = gridHeader[0].length
@@ -1309,7 +1321,9 @@ function renderSheet(sheet, sheetTable) {
 				var rowTD = document.createElement('td')
                 rowTD.id = gridHeader[0][k]+"_"+j
                 rowTR.appendChild(rowTD)
-                sheetEventBinder.initRowTD(rowTD)
+                if(!config.WSConfig.isPreview){
+                    sheetEventBinder.initRowTD(rowTD)
+                }
 				var rowDiv = document.createElement('div')
                 rowTD.appendChild(rowDiv)
 			}
@@ -1319,7 +1333,10 @@ function renderSheet(sheet, sheetTable) {
 	input.style.display = 'none'
     input.style.position = 'absolute'
 	input.id = 'input'
-    sheetEventBinder.initInput(input)
+    if(!config.WSConfig.isPreview){
+        sheetEventBinder.initInput(input)
+    }
+
 	sheetTable.appendChild(input)
     var ta = document.createElement('textarea') // used for ctrl-c/ctrl-v where an invisible text area is needed
     ta.style = 'display:none;position:absolute;height:1px;width:1px;opacity:0;filter:alpha(opacity=0);'
@@ -1368,7 +1385,7 @@ var ToolEventHandlerModule=__webpack_require__(12)
 var ToolEventHandler = ToolEventHandlerModule.ToolEventHandler
 var toolEventHandler=null
 
-var CellRenderModule=__webpack_require__(1)
+var CellRenderModule=__webpack_require__(2)
 var CellRender=CellRenderModule.CellRender
 var cellRender=null
 
@@ -1378,10 +1395,7 @@ var ToolEventBinder=function(sheet){
     cellRender=new CellRender(sheet)
 }
 ToolEventBinder.prototype.buttonClick = function (buttonDiv) {
-    buttonDiv.onclick = function(){
-        console.log(buttonDiv.innerHTML)
-        toolEventHandler.buttonClick(buttonDiv.innerHTML)
-    }
+    toolEventHandler.buttonClick(buttonDiv.innerHTML)
 }
 ToolEventBinder.prototype.initFontFamily=function(fontFamilySelect){
     var toolEventBinder=this
@@ -1534,11 +1548,11 @@ module.exports.ToolEventBinder=ToolEventBinder
  */
 var config = __webpack_require__(0)
 
-var UtilModule=__webpack_require__(2)
+var UtilModule=__webpack_require__(3)
 var Util=UtilModule.Util
 var util=new Util()
 
-var CellRenderModule = __webpack_require__(1)
+var CellRenderModule = __webpack_require__(2)
 var CellRender=CellRenderModule.CellRender
 var cellRender=null
 
@@ -1578,7 +1592,99 @@ ToolEventHandler.prototype.buttonClick = function(action){
             }
             break
         case "Preview":
+            var flag=false
+            var e=this.sheet.cells
+            for (var key in e) {
+                flag=true
+                break
+            }
+            if(flag){
+                var needEditCells={}
+                for (var key in e) {
+                    if(e[key]["content"]!=''&&e[key]["content"].indexOf('=')==0){
+                        needEditCells[key]=e[key]["content"]
+                    }
+                }
+                config.WSConfig.isPreview=true
+                var WSManagerModule = __webpack_require__(1)
+                var WSManager = WSManagerModule.WSManager
+                var newWsManager=new WSManager()
+                var parentNode = document.getElementById('QianMoApp')
+                parentNode.firstChild.remove()
+                newWsManager.init(parentNode)
+                for (var key in e) {
+                    for(var key1 in e[key]){
+                        cellRender.renderCell(key,key1,e[key][key1])
+                    }
+                }
+            }else{
+                alert("无内容，不允许预览！")
+            }
 
+            break
+        case "Edit":
+            config.WSConfig.isPreview=false
+            var WSManagerModule = __webpack_require__(1)
+            var WSManager = WSManagerModule.WSManager
+            var newWsManager=new WSManager()
+            var parentNode = document.getElementById('QianMoApp')
+            parentNode.firstChild.remove()
+            newWsManager.init(parentNode)
+            var e=this.sheet.cells
+            for (var key in e) {
+                for(var key1 in e[key]){
+                    cellRender.renderCell(key,key1,e[key][key1])
+                }
+            }
+            break
+        case "Down":
+            var ajax
+            if(window.XMLHttpRequest){
+                ajax = new XMLHttpRequest()
+            }else if(window.ActiveXObject){
+                ajax = new window.ActiveXObject()
+            }else{
+                alert("请升级至最新版本的浏览器")
+            }
+            if(ajax !=null){
+                ajax.open("POST","json.json",true)
+                ajax.send(null)
+                ajax.onreadystatechange=function(){
+                    if(ajax.readyState==4&&ajax.status==200){
+                        var CellList = JSON.parse(ajax.responseText)
+                        CellList.forEach(function(e){
+                            for (var key in e) {
+                                cellRender.renderCell(e['cellName'],key,e[key])
+                            }
+                        })
+                    }
+                }
+            }
+            break
+        case  "Init":
+            var parentNode=document.getElementById("QianMoApp")
+            var ajax
+            if(window.XMLHttpRequest){
+                ajax = new XMLHttpRequest()
+            }else if(window.ActiveXObject){
+                ajax = new window.ActiveXObject()
+            }else{
+                alert("请升级至最新版本的浏览器")
+            }
+            if(ajax !=null){
+                ajax.open("GET",parentNode.getAttribute("url"),true)
+                ajax.send(null)
+                ajax.onreadystatechange=function(){
+                    if(ajax.readyState==4&&ajax.status==200){
+                        var CellList = JSON.parse(ajax.responseText)
+                        CellList.forEach(function(e){
+                            for (var key in e) {
+                                cellRender.renderCell(e['cellName'],key,e[key])
+                            }
+                        })
+                    }
+                }
+            }
             break
         default:
             break
@@ -1621,7 +1727,7 @@ module.exports.ToolEventHandler = ToolEventHandler
 /**
  * 工具栏渲染
  */
-
+var config = __webpack_require__(0)
 var ToolRender=function(sheet){
     this.sheet=sheet
 }
@@ -1633,11 +1739,18 @@ ToolRender.prototype.init=function(toolDiv,width,height){
     toolDiv.style.width = width + 'px'
     toolDiv.style.height = height + 'px'
     toolDiv.style.backgroundColor = '#aaaaaa'
-    //sheetToolDiv.innerHTML = "&#xe900;&#xe901;&#xe14d;&#xe14e;&#xe14f;"
-    var html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f","autoLF","Preview"]
-    //渲染工具栏具体button按钮
+    var html = []
+    if(config.WSConfig.isPreview){
+        html = ["Edit","Down"]
+    }else{
+
+        //sheetToolDiv.innerHTML = "&#xe900;&#xe901;&#xe14d;&#xe14e;&#xe14f;"
+        html = ["&#xe900","&#xe901","&#xe14d","&#xe14e","&#xe14f","autoLF","Preview","Init"]
+    }
+//渲染工具栏具体button按钮
     html.forEach(function(innerhtml){
         var buttonDiv = document.createElement('div')
+        buttonDiv.id=innerhtml
         buttonDiv.style.display = "inline"
         buttonDiv.innerHTML=innerhtml
         buttonDiv.style.cursor='pointer'
@@ -1648,16 +1761,18 @@ ToolRender.prototype.init=function(toolDiv,width,height){
         }
         toolDiv.appendChild(buttonDiv)
     })
+    if(!config.WSConfig.isPreview){
+        renderFont(toolEventBinder,toolDiv)
+        renderColorAndBackgroundColor(toolEventBinder,toolDiv)
+        renderColorSelect(toolEventBinder,toolDiv)
 
-    renderFont(toolEventBinder,toolDiv)
-    renderColorAndBackgroundColor(toolEventBinder,toolDiv)
-    renderColorSelect(toolEventBinder,toolDiv)
+        var fileInput=document.createElement('input')
+        fileInput.type='file'
+        fileInput.style.marginLeft='10px'
+        toolEventBinder.initFileInput(fileInput)
+        toolDiv.appendChild(fileInput)
+    }
 
-    var fileInput=document.createElement('input')
-    fileInput.type='file'
-    fileInput.style.marginLeft='10px'
-    toolEventBinder.initFileInput(fileInput)
-    toolDiv.appendChild(fileInput)
 
 }
 
