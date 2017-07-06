@@ -1604,39 +1604,46 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 break
             }
             if(flag){
-                var needEditCells={}
+                var needEditCells=[]
                 for (var key in e) {
                     if(e[key]["content"]!=''&&e[key]["content"].indexOf('=')==0){
-                        needEditCells[key]=e[key]["content"]
+                        var formula={
+                            'coord':key,
+                            'value':e[key]["content"]
+                        }
+                        needEditCells.push(formula)
                         this.sheet.cells[key]["formula"]=e[key]["content"]
                     }
                 }
-
-                var ajax
-                if(window.XMLHttpRequest){
-                    ajax = new XMLHttpRequest()
-                }else if(window.ActiveXObject){
-                    ajax = new window.ActiveXObject()
-                }else{
-                    alert("请升级至最新版本的浏览器")
-                }
-                if(ajax !=null){
-                    ajax.open("POST","http://localhost:8080/excelTest/changeContent",true)
-                    ajax.send(needEditCells)
-                    ajax.onreadystatechange=function(){
-                        if(ajax.readyState==4&&ajax.status==200){
-                            var CellList = JSON.parse(ajax.responseText)
-                            for(var key in CellList){
-                                var value=CellList[key].substring(1)
-                                if(value.indexOf("+")!=-1){
-                                    var result=0
-                                    var values=value.split("+")
-                                    for(var v in values){
-                                        result+=parseInt(values[v])
+                needEditCells=JSON.stringify(needEditCells)
+                console.log(needEditCells)
+                if(needEditCells.length>0){
+                    var ajax
+                    if(window.XMLHttpRequest){
+                        ajax = new XMLHttpRequest()
+                    }else if(window.ActiveXObject){
+                        ajax = new window.ActiveXObject()
+                    }else{
+                        alert("请升级至最新版本的浏览器")
+                    }
+                    if(ajax !=null){
+                        ajax.open("POST","http://localhost:8080/excelTest/changeContent",true)
+                        ajax.send('[{"coord":"A_1","value":"=123+1"},{"coord":"A_2","value":"=234+1"}]')
+                        ajax.onreadystatechange=function(){
+                            if(ajax.readyState==4&&ajax.status==200){
+                                var CellList = JSON.parse(ajax.responseText)
+                                for(var key in CellList){
+                                    var value=CellList[key].substring(1)
+                                    if(value.indexOf("+")!=-1){
+                                        var result=0
+                                        var values=value.split("+")
+                                        for(var v in values){
+                                            result+=parseInt(values[v])
+                                        }
+                                        value=result
                                     }
-                                    value=result
+                                    this.sheet.cells[key]["content"]=value
                                 }
-                                this.sheet.cells[key]["content"]=value
                             }
                         }
                     }
@@ -1680,15 +1687,37 @@ ToolEventHandler.prototype.buttonClick = function(action){
             break
         case "Down":
             var e=this.sheet.cells
-            var CellList=new Array()
+            var a={}
+            var CellList=[]
             for (var key in e) {
-                e[key]["cellName"]=key.split("_")[0]+key.split("_")[1]
-                console.log(e[key]["area"].split("_"))
                 e[key]["area"]=e[key]["area"].split("_")[0]+e[key]["area"].split("_")[1]
                     +e[key]["area"].split("_")[2]
                 e[key]["area"]=e[key]["area"].split(":")[0]+"-"+e[key]["area"].split(":")[1]
-                CellList.push(e[key])
+                var addCell={
+                    "cellName": key.split("_")[0]+key.split("_")[1],
+                    "area":e[key]["area"],
+                    "content":e[key]["content"]==undefined?"":e[key]["content"],
+                    "format":e[key]["format"]==undefined?"":e[key]["format"],
+                    "font":e[key]["font"]==undefined?"":e[key]["font"],
+                    "fontSize":e[key]["fontSize"]==undefined?"":e[key]["fontSize"],
+                    "foregroundColor":e[key]["foregroundColor"]==undefined?"":e[key]["foregroundColor"],
+                    "backgroundColor":e[key]["backgroundColor"]==undefined?"":e[key]["backgroundColor"],
+                    "formula":e[key]["formula"]==undefined?"":e[key]["formula"],
+                    "leftFrame": e[key]["leftFrame"]==undefined?"":e[key]["leftFrame"],
+                    "topFrame":e[key]["topFrame"]==undefined?"":e[key]["topFrame"],
+                    "rightFrame":e[key]["rightFrame"]==undefined?"":e[key]["rightFrame"],
+                    "bottomFrame": e[key]["bottomFrame"]==undefined?"":e[key]["bottomFrame"],
+                    "indentation":e[key]["indentation"]==undefined?"":e[key]["indentation"],
+                    "alignment":e[key]["alignment"]==undefined?"":e[key]["alignment"],
+                    "bold":e[key]["bold"]==undefined?"":e[key]["bold"],
+                    "italic":e[key]["italic"]==undefined?"":e[key]["italic"]
+                }
+
+                CellList.push(addCell)
             }
+
+            CellList = JSON.stringify(CellList)
+            console.log(CellList)
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1699,7 +1728,8 @@ ToolEventHandler.prototype.buttonClick = function(action){
             }
             if(ajax !=null){
                 ajax.open("POST","http://localhost:8080/excelTest/excelDownload",true)
-                ajax.send(CellList)
+                CellList = JSON.parse(CellList)
+                ajax.send('[{"coord":"A_1","value":"=123+1"},{"coord":"A_2","value":"=234+1"}]')
                 ajax.onreadystatechange=function(){
 
                 }
