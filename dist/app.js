@@ -90,7 +90,8 @@ var WSConfig = {
 	isEditing:false,
 	editCell:null,
 	isFont:false,
-	isPreview:false
+	isPreview:false,
+	isInit:true
 }
 
 /**
@@ -225,6 +226,7 @@ module.exports.CellConfig = CellConfig
  * 整体工作管理对象
  * @constructor
  */
+var config = __webpack_require__(0)
 var WSManager = function () {}
 
 WSManager.prototype.init = function (parentNode) {
@@ -256,8 +258,9 @@ WSManager.prototype.init = function (parentNode) {
 
     wsRender.init()
 
-    if(parentNode.getAttribute("url")){
+    if(config.WSConfig.isInit&&parentNode.getAttribute("url")){
         document.getElementById("Init").onclick()
+        config.WSConfig.isInit=false
     }
 }
 
@@ -450,6 +453,9 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                 }
                 ele.firstChild.innerHTML=html+this.sheet.cells[id].content
                 this.sheet.cells[id].indentation=value
+                break
+            case "formula":
+                this.sheet.cells[id].formula=value
                 break
         }
     }
@@ -1561,7 +1567,6 @@ var ToolEventHandler = function(sheet){
     cellRender=new CellRender(sheet)
 }
 ToolEventHandler.prototype.buttonClick = function(action){
-    console.log(action)
     switch(action){
         case "autoLF":
             var sheet = this.sheet
@@ -1603,6 +1608,37 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 for (var key in e) {
                     if(e[key]["content"]!=''&&e[key]["content"].indexOf('=')==0){
                         needEditCells[key]=e[key]["content"]
+                        this.sheet.cells[key]["formula"]=e[key]["content"]
+                    }
+                }
+
+                var ajax
+                if(window.XMLHttpRequest){
+                    ajax = new XMLHttpRequest()
+                }else if(window.ActiveXObject){
+                    ajax = new window.ActiveXObject()
+                }else{
+                    alert("请升级至最新版本的浏览器")
+                }
+                if(ajax !=null){
+                    ajax.open("POST","http://localhost:8080/excelTest/changeContent",true)
+                    ajax.send(needEditCells)
+                    ajax.onreadystatechange=function(){
+                        if(ajax.readyState==4&&ajax.status==200){
+                            var CellList = JSON.parse(ajax.responseText)
+                            for(var key in CellList){
+                                var value=CellList[key].substring(1)
+                                if(value.indexOf("+")!=-1){
+                                    var result=0
+                                    var values=value.split("+")
+                                    for(var v in values){
+                                        result+=parseInt(values[v])
+                                    }
+                                    value=result
+                                }
+                                this.sheet.cells[key]["content"]=value
+                            }
+                        }
                     }
                 }
                 config.WSConfig.isPreview=true
@@ -1633,11 +1669,26 @@ ToolEventHandler.prototype.buttonClick = function(action){
             var e=this.sheet.cells
             for (var key in e) {
                 for(var key1 in e[key]){
-                    cellRender.renderCell(key,key1,e[key][key1])
+                    if(key1=="formula"&&e[key][key1]!=""){
+                        cellRender.renderCell(key,"content",e[key][key1])
+                    }else{
+                        cellRender.renderCell(key,key1,e[key][key1])
+                    }
+
                 }
             }
             break
         case "Down":
+            var e=this.sheet.cells
+            var CellList=new Array()
+            for (var key in e) {
+                e[key]["cellName"]=key.split("_")[0]+key.split("_")[1]
+                console.log(e[key]["area"].split("_"))
+                e[key]["area"]=e[key]["area"].split("_")[0]+e[key]["area"].split("_")[1]
+                    +e[key]["area"].split("_")[2]
+                e[key]["area"]=e[key]["area"].split(":")[0]+"-"+e[key]["area"].split(":")[1]
+                CellList.push(e[key])
+            }
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1647,17 +1698,10 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","json.json",true)
-                ajax.send(null)
+                ajax.open("POST","http://localhost:8080/excelTest/excelDownload",true)
+                ajax.send(CellList)
                 ajax.onreadystatechange=function(){
-                    if(ajax.readyState==4&&ajax.status==200){
-                        var CellList = JSON.parse(ajax.responseText)
-                        CellList.forEach(function(e){
-                            for (var key in e) {
-                                cellRender.renderCell(e['cellName'],key,e[key])
-                            }
-                        })
-                    }
+
                 }
             }
             break
