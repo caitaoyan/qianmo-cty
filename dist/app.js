@@ -1625,10 +1625,9 @@ ToolEventHandler.prototype.buttonClick = function(action){
                         alert("请升级至最新版本的浏览器")
                     }
                     if(ajax !=null){
-                        ajax.open("POST","http://localhost:8090/excel/changeContent",true)
+                        ajax.open("POST","http://localhost:8090/changeContent",true)
                         needEditCells=JSON.stringify(needEditCells)
-                        ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded")
-                        ajax.send('{"coord":"A_1","value":"=123+1"}')
+                        ajax.send(needEditCells)
                         ajax.onreadystatechange=function(){
                             if(ajax.readyState==4&&ajax.status==200){
                                 var CellList = JSON.parse(ajax.responseText)
@@ -1715,9 +1714,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
 
                 CellList.push(addCell)
             }
-
             CellList = JSON.stringify(CellList)
-            // console.log(CellList)
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1727,17 +1724,20 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","http://localhost:8090/excel/excelDownload",true)
-                ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded")
-                CellList = JSON.parse(CellList)
+                ajax.open("POST","http://localhost:8090/excelDownload",true)
+                ajax.send(CellList)
                 ajax.onreadystatechange=function(){
 
                 }
-                ajax.send('[{"coord":"A_1","value":"=123+1"},{"coord":"A_2","value":"=234+1"}]')
+
             }
             break
         case  "Init":
             var parentNode=document.getElementById("QianMoApp")
+            var url=parentNode.getAttribute("url")
+            if(!url&& url!=''){
+                url='json.json'
+            }
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1747,7 +1747,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("GET",parentNode.getAttribute("url"),true)
+                ajax.open("GET",url,true)
                 ajax.send(null)
                 ajax.onreadystatechange=function(){
                     if(ajax.readyState==4&&ajax.status==200){
@@ -1844,6 +1844,7 @@ ToolRender.prototype.init=function(toolDiv,width,height){
         var fileInput=document.createElement('input')
         fileInput.type='file'
         fileInput.style.marginLeft='10px'
+        fileInput.style.display='none'
         toolEventBinder.initFileInput(fileInput)
         toolDiv.appendChild(fileInput)
     }
