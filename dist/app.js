@@ -1615,8 +1615,6 @@ ToolEventHandler.prototype.buttonClick = function(action){
                         this.sheet.cells[key]["formula"]=e[key]["content"]
                     }
                 }
-                needEditCells=JSON.stringify(needEditCells)
-                console.log(needEditCells)
                 if(needEditCells.length>0){
                     var ajax
                     if(window.XMLHttpRequest){
@@ -1627,8 +1625,10 @@ ToolEventHandler.prototype.buttonClick = function(action){
                         alert("请升级至最新版本的浏览器")
                     }
                     if(ajax !=null){
-                        ajax.open("POST","http://localhost:8080/excelTest/changeContent",true)
-                        ajax.send('[{"coord":"A_1","value":"=123+1"},{"coord":"A_2","value":"=234+1"}]')
+                        ajax.open("POST","http://localhost:8090/excel/changeContent",true)
+                        needEditCells=JSON.stringify(needEditCells)
+                        ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded")
+                        ajax.send('{"coord":"A_1","value":"=123+1"}')
                         ajax.onreadystatechange=function(){
                             if(ajax.readyState==4&&ajax.status==200){
                                 var CellList = JSON.parse(ajax.responseText)
@@ -1717,7 +1717,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
             }
 
             CellList = JSON.stringify(CellList)
-            console.log(CellList)
+            // console.log(CellList)
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1727,12 +1727,13 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","http://localhost:8080/excelTest/excelDownload",true)
+                ajax.open("POST","http://localhost:8090/excel/excelDownload",true)
+                ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded")
                 CellList = JSON.parse(CellList)
-                ajax.send('[{"coord":"A_1","value":"=123+1"},{"coord":"A_2","value":"=234+1"}]')
                 ajax.onreadystatechange=function(){
 
                 }
+                ajax.send('[{"coord":"A_1","value":"=123+1"},{"coord":"A_2","value":"=234+1"}]')
             }
             break
         case  "Init":
