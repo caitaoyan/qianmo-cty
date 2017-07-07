@@ -1625,7 +1625,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
                         alert("请升级至最新版本的浏览器")
                     }
                     if(ajax !=null){
-                        ajax.open("POST","http://localhost:8090/changeContent",true)
+                        ajax.open("POST","http://localhost:8080/excelTest/changeContent",true)
                         needEditCells=JSON.stringify(needEditCells)
                         ajax.send(needEditCells)
                         ajax.onreadystatechange=function(){
@@ -1724,7 +1724,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","http://localhost:8090/excelDownload",true)
+                ajax.open("POST","http://localhost:8080/excelTest/excelDownload",true)
                 ajax.send(CellList)
                 ajax.onreadystatechange=function(){
 
@@ -1734,9 +1734,13 @@ ToolEventHandler.prototype.buttonClick = function(action){
             break
         case  "Init":
             var parentNode=document.getElementById("QianMoApp")
-            var url=parentNode.getAttribute("url")
-            if(!url&& url!=''){
+            var param=parentNode.getAttribute("url")
+            var url=''
+            if(!param&& param!=''){
                 url='json.json'
+                param=null
+            }else{
+                url='http://localhost:8080/excelTest/getContentJson'
             }
             var ajax
             if(window.XMLHttpRequest){
@@ -1748,7 +1752,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
             }
             if(ajax !=null){
                 ajax.open("GET",url,true)
-                ajax.send(null)
+                ajax.send(param)
                 ajax.onreadystatechange=function(){
                     if(ajax.readyState==4&&ajax.status==200){
                         var CellList = JSON.parse(ajax.responseText)
