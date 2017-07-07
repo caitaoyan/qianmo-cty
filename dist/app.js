@@ -1689,6 +1689,9 @@ ToolEventHandler.prototype.buttonClick = function(action){
             var a={}
             var CellList=[]
             for (var key in e) {
+                if(!e[key]["area"]){
+                    e[key]["area"]=key+":"+key
+                }
                 e[key]["area"]=e[key]["area"].split("_")[0]+e[key]["area"].split("_")[1]
                     +e[key]["area"].split("_")[2]
                 e[key]["area"]=e[key]["area"].split(":")[0]+"-"+e[key]["area"].split(":")[1]
