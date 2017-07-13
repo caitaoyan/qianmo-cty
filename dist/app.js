@@ -312,6 +312,9 @@ CellRender.prototype.renderCell=function (id,cmd,value) {
                     sheet.range=firstCell+':'+lastCell
                     value=firstCell+':'+lastCell
                 }
+                if(!this.sheet.cells[id]){
+                    this.sheet.cells[id] = new Cell(id)
+                }
                 this.sheet.cells[id].area=value
                 var firstCell=value.split(':')[0]
                 var lastCell=value.split(':')[1]
@@ -924,6 +927,7 @@ SheetEventHandler.prototype.inputBlur = function () {
         }
     }else{
         ele.firstChild.innerHTML = ''
+        this.sheet.cells[ele.id].content = ''
     }
 }
 SheetEventHandler.prototype.inputFocus = function () {
@@ -1615,6 +1619,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
                         this.sheet.cells[key]["formula"]=e[key]["content"]
                     }
                 }
+
                 if(needEditCells.length>0){
                     var ajax
                     if(window.XMLHttpRequest){
@@ -1625,14 +1630,15 @@ ToolEventHandler.prototype.buttonClick = function(action){
                         alert("请升级至最新版本的浏览器")
                     }
                     if(ajax !=null){
-                        ajax.open("POST","http://localhost:8080/excelTest/changeContent",true)
+                        ajax.open("POST","https://qianmo.nemoworks.info/changeContent",true)
                         needEditCells=JSON.stringify(needEditCells)
+                        // console.log(needEditCells)
                         ajax.send(needEditCells)
                         ajax.onreadystatechange=function(){
                             if(ajax.readyState==4&&ajax.status==200){
                                 var CellList = JSON.parse(ajax.responseText)
-                                for(var key in CellList){
-                                    var value=CellList[key].substring(1)
+                                CellList.forEach(function(date){
+                                    var value=date.value.substring(1)
                                     if(value.indexOf("+")!=-1){
                                         var result=0
                                         var values=value.split("+")
@@ -1641,22 +1647,37 @@ ToolEventHandler.prototype.buttonClick = function(action){
                                         }
                                         value=result
                                     }
-                                    this.sheet.cells[key]["content"]=value
+                                    e[date.coord]["content"]=value
+                                })
+                                flag=false
+                                config.WSConfig.isPreview=true
+                                var WSManagerModule = __webpack_require__(1)
+                                var WSManager = WSManagerModule.WSManager
+                                var newWsManager=new WSManager()
+                                var parentNode = document.getElementById('QianMoApp')
+                                parentNode.firstChild.remove()
+                                newWsManager.init(parentNode)
+                                for (var key in e) {
+                                    for(var key1 in e[key]){
+                                        cellRender.renderCell(key,key1,e[key][key1])
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                config.WSConfig.isPreview=true
-                var WSManagerModule = __webpack_require__(1)
-                var WSManager = WSManagerModule.WSManager
-                var newWsManager=new WSManager()
-                var parentNode = document.getElementById('QianMoApp')
-                parentNode.firstChild.remove()
-                newWsManager.init(parentNode)
-                for (var key in e) {
-                    for(var key1 in e[key]){
-                        cellRender.renderCell(key,key1,e[key][key1])
+                if(flag){
+                    config.WSConfig.isPreview=true
+                    var WSManagerModule = __webpack_require__(1)
+                    var WSManager = WSManagerModule.WSManager
+                    var newWsManager=new WSManager()
+                    var parentNode = document.getElementById('QianMoApp')
+                    parentNode.firstChild.remove()
+                    newWsManager.init(parentNode)
+                    for (var key in e) {
+                        for(var key1 in e[key]){
+                            cellRender.renderCell(key,key1,e[key][key1])
+                        }
                     }
                 }
             }else{
@@ -1677,14 +1698,15 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 for(var key1 in e[key]){
                     if(key1=="formula"&&e[key][key1]!=""){
                         cellRender.renderCell(key,"content",e[key][key1])
-                    }else{
+                    }else{1
                         cellRender.renderCell(key,key1,e[key][key1])
                     }
-
                 }
             }
             break
         case "Down":
+            document.getElementById('statu').style.display='inline'
+            document.getElementById('statu').innerHTML='load......'
             var e=this.sheet.cells
             var a={}
             var CellList=[]
@@ -1692,12 +1714,13 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 if(!e[key]["area"]){
                     e[key]["area"]=key+":"+key
                 }
-                e[key]["area"]=e[key]["area"].split("_")[0]+e[key]["area"].split("_")[1]
-                    +e[key]["area"].split("_")[2]
-                e[key]["area"]=e[key]["area"].split(":")[0]+"-"+e[key]["area"].split(":")[1]
                 var addCell={
                     "cellName": key.split("_")[0]+key.split("_")[1],
-                    "area":e[key]["area"],
+                    "area":e[key]["area"].split("_")[0]
+                    +e[key]["area"].split("_")[1].split(":")[0]
+                    +"-"
+                    +e[key]["area"].split("_")[1].split(":")[1]
+                    +e[key]["area"].split("_")[2],
                     "content":e[key]["content"]==undefined?"":e[key]["content"],
                     "format":e[key]["format"]==undefined?"":e[key]["format"],
                     "font":e[key]["font"]==undefined?"":e[key]["font"],
@@ -1705,11 +1728,11 @@ ToolEventHandler.prototype.buttonClick = function(action){
                     "foregroundColor":e[key]["foregroundColor"]==undefined?"":e[key]["foregroundColor"],
                     "backgroundColor":e[key]["backgroundColor"]==undefined?"":e[key]["backgroundColor"],
                     "formula":e[key]["formula"]==undefined?"":e[key]["formula"],
-                    "leftFrame": e[key]["leftFrame"]==undefined?"":e[key]["leftFrame"],
-                    "topFrame":e[key]["topFrame"]==undefined?"":e[key]["topFrame"],
-                    "rightFrame":e[key]["rightFrame"]==undefined?"":e[key]["rightFrame"],
-                    "bottomFrame": e[key]["bottomFrame"]==undefined?"":e[key]["bottomFrame"],
-                    "indentation":e[key]["indentation"]==undefined?"":e[key]["indentation"],
+                    "leftFrame": e[key]["leftFrame"]==undefined?"":'有',
+                    "topFrame":e[key]["topFrame"]==undefined?"":'有',
+                    "rightFrame":e[key]["rightFrame"]==undefined?"":'有',
+                    "bottomFrame": e[key]["bottomFrame"]==undefined?"":'有',
+                    "indentation":e[key]["indentation"]==undefined?"0":e[key]["indentation"],
                     "alignment":e[key]["alignment"]==undefined?"":e[key]["alignment"],
                     "bold":e[key]["bold"]==undefined?"":e[key]["bold"],
                     "italic":e[key]["italic"]==undefined?"":e[key]["italic"]
@@ -1717,7 +1740,8 @@ ToolEventHandler.prototype.buttonClick = function(action){
 
                 CellList.push(addCell)
             }
-            CellList = JSON.stringify(CellList)
+            var json= JSON.stringify(CellList)
+            // console.log(CellList)
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1727,24 +1751,67 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","http://localhost:8080/excelTest/excelDownload",true)
-                ajax.send(CellList)
-                ajax.onreadystatechange=function(){
+                ajax.open("POST","https://qianmo.nemoworks.info/excelDownload",true)
+                ajax.onload=function(){
+                    if(ajax.status==200){
+                        var filename = "";
+                        console.log(ajax.getResponseHeader)
+                        var disposition = ajax.getResponseHeader('Content-Disposition');
+                        if (disposition && disposition.indexOf('attachment') !== -1) {
+                            var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            var matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+                        }
+                        var type = ajax.getResponseHeader('Content-Type');
+                        var blob = new Blob([this.response], { type: type });
+                        if (typeof window.navigator.msSaveBlob !== 'undefined') {
+                            // IE workaround for "HTML7007: One or more blob URLs were revoked by closing the blob for which they were created. These URLs will no longer resolve as the data backing the URL has been freed."
+                            window.navigator.msSaveBlob(blob, filename);
+                        } else {
+                            var URL = window.URL || window.webkitURL;
+                            var downloadUrl = URL.createObjectURL(blob);
+                            console.log(downloadUrl)
+                            if (filename) {
+                                // use HTML5 a[download] attribute to specify filename
+                                var a = document.createElement("a");
+                                // safari doesn't support this yet
+                                if (typeof a.download === 'undefined') {
+                                    window.location = downloadUrl;
+                                } else {
+                                    a.href = downloadUrl;
+                                    a.download = filename;
+                                    console.log(a)
+                                    document.body.appendChild(a);
+                                    a.click();
+                                }
+                            } else {
+                                window.location = downloadUrl;
+                            }
 
+                            setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
+                        }
+                    }
+                    document.getElementById('statu').innerHTML='SUCCESS'
                 }
-
+                ajax.responseType = 'blob'
+                ajax.send(json)
             }
+
             break
         case  "Init":
             var parentNode=document.getElementById("QianMoApp")
             var param=parentNode.getAttribute("url")
             var url=''
+            var method="GET"
             if(!param&& param!=''){
                 url='json.json'
                 param=null
             }else{
-                url='http://localhost:8080/excelTest/getContentJson'
+                method="POST"
+                url='https://qianmo.nemoworks.info/getContentJson'
+                param=param.substring(param.lastIndexOf("\\")+1)
             }
+            console.log(param)
             var ajax
             if(window.XMLHttpRequest){
                 ajax = new XMLHttpRequest()
@@ -1754,7 +1821,7 @@ ToolEventHandler.prototype.buttonClick = function(action){
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("GET",url,true)
+                ajax.open(method,url,true)
                 ajax.send(param)
                 ajax.onreadystatechange=function(){
                     if(ajax.readyState==4&&ajax.status==200){
@@ -1854,6 +1921,12 @@ ToolRender.prototype.init=function(toolDiv,width,height){
         fileInput.style.display='none'
         toolEventBinder.initFileInput(fileInput)
         toolDiv.appendChild(fileInput)
+    }else{
+        var span=document.createElement("span")
+        span.id='statu'
+        span.style.marginLeft='10px'
+        span.style.display='none'
+        toolDiv.appendChild(span)
     }
 
 
