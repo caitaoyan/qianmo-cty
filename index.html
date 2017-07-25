@@ -19,7 +19,7 @@
         }
         .QianMo{
             border: none;
-            font-family: icon;
+            font-family: icon,sens-serif;
         }
         table
         {
@@ -48,10 +48,19 @@
         input:focus{
             outline: none;
         }
+        .noWrap{
+            white-space:nowrap; text-overflow:ellipsis;
+        }
+        .wrap{
+            word-break: break-all;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
     <div id="QianMoApp" class="QianMo"></div>
+    <div id="QianMoApp2" style="display: none" class="QianMo"></div>
     <script type="text/javascript" src="./dist/app.js"></script>
 </body>
 </html>
