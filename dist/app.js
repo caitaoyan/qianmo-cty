@@ -2372,7 +2372,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                         alert("请升级至最新版本的浏览器")
                     }
                     if (ajax !== null) {
-                        ajax.open("POST", "http://123.56.22.114:8080/qianmo-service/changeContent", true)
+                        ajax.open("POST", "https://localhost:8088/qianmo-service/changeContent", true)
                         needEditCells = JSON.stringify(needEditCells)
                         ajax.send(needEditCells)
                         ajax.onreadystatechange = function () {
@@ -2494,7 +2494,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","http://123.56.22.114:8080/qianmo-service/excelDownload",true)
+                ajax.open("POST","https://localhost:8088/qianmo-service/excelDownload",true)
                 ajax.onload=function(){
                     if(ajax.status==200){
                         var filename = "";
@@ -2548,7 +2548,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 param=null
             }else{
                 method="POST"
-                url='http://123.56.22.114:8080/qianmo-service/getContentJson'
+                url='https://localhost:8088/qianmo-service/getContentJson'
                 param=param.substring(param.lastIndexOf("\\")+1)
             }
             var ajax
