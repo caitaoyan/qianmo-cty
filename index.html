@@ -19,7 +19,10 @@
         }
         .QianMo{
             border: none;
-            font-family: icon,sens-serif;
+            font-family: icon,sans-serif;
+        }
+        body{
+            margin: 0;
         }
         table
         {
@@ -56,11 +59,25 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
+        #mask{
+            position:absolute;
+            top:0;
+            left:0;
+            height:100%;
+            width:100%;
+            background:rgba(0,0,0,0.7);
+            display:none;
+            z-index:1;
+            color:rgba(255,255,255,0.8);
+            font-size: 50px;
+            text-align: center;
+            padding-top:250px;
+        }
     </style>
 </head>
 <body>
     <div id="QianMoApp" class="QianMo"></div>
-    <div id="QianMoApp2" style="display: none" class="QianMo"></div>
+    <div id="mask">Loading.........</div>
     <script type="text/javascript" src="./dist/app.js"></script>
 </body>
 </html>

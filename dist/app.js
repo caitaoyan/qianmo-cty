@@ -104,14 +104,14 @@ var ToolConfig = {
         brush: '&#xe243', underline: '&#xe249', sigma: '&#xe24a', func: '&#xe940',
         preview: '&#xe8f4', sort: '&#xe164', wrapText: '&#xe25b', undo: '&#xe967', redo: '&#xe968',
         cleanText: '清除文字', cleanStyle: '清除格式', cleanAll: '清除文字和格式', multiLine: '多行输入',
-        addCol: '插列', addRow: '插列', menu: '&#xe3c7', close: '&#xe5cd'
+        addCol: '插列', addRow: '插列', menu: '&#xe3c7', close: '&#xe5cd',Init:'Init'
     },
     styleHtml: ['font', 'bold', 'italic', 'textColor', 'fillColor', 'align', 'border', 'brush', 'cleanText',
         'cleanStyle', 'cleanAll'],
     toolHtml: ['copy', 'paste', 'cut', 'sort', 'find', 'wrapText', 'func', 'sigma', 'mergeCell', 'splitCell',
         'multiLine', 'addCol','addRow'],
-    dataHtml: ['数据源', '数据集', 'Init'],
-    defaultHtml: ['undo', 'redo', 'preview'],
+    dataHtml: ['数据源', '数据集'],
+    defaultHtml: ['undo', 'redo', 'preview', 'Init'],
     borderHtml: ['borderAll', 'borderBottom', 'borderTop', 'borderClear', 'borderLeft', 'borderOuter', 'borderRight'],
     alignHtml: ['alignLeft', 'alignCenter', 'alignRight'],
     previewHtml: ['Edit', 'Down'],
@@ -143,8 +143,12 @@ var SlideBarConfig = {
 
     iconHtmlMap: {
 		open: '&#xe3c7',
-        close: '&#xe5cd'
-    }
+        close: '&#xe5cd',
+        arrow: '&#xe313'
+    },
+
+    sliderPaneTitle: ['单元格属性','表格属性','数据源','数据集'],
+    arrowIcon: 'arrow'
 }
 
 /**
@@ -164,7 +168,7 @@ var SheetConfig = {
     headWidth: 30,
     headHeight: 25,
 
-    rowNum: 100,
+    rowNum: 200,
     colNum: 25
 }
 
@@ -282,58 +286,6 @@ module.exports.SlideBarConfig = SlideBarConfig
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
- * 整体工作管理对象
- * @constructor
- */
-var config = __webpack_require__(0)
-var WSManager = function () {
-}
-
-WSManager.prototype.init = function (parentNode) {
-
-	//实例化初始化Tool对象
-	var ToolModule = __webpack_require__(12)
-	var Tool = ToolModule.Tool
-	var tool = new Tool()
-
-	//实例化初始化UndoStack对象
-	var UndoStackModule = __webpack_require__(15)
-	var UndoStack = UndoStackModule.UndoStack
-	var undoStack = new UndoStack()
-
-	//实例化初始化Sheet对象
-	var SheetModule = __webpack_require__(9)
-	var Sheet = SheetModule.Sheet
-	var sheet = new Sheet(undoStack)
-
-	//实例化初始化SliderBar对象
-	// var SliderBarModule = require('SliderBar')
-
-	//实例化初始化Workspace对象
-	var WorkspaceModule = __webpack_require__(17)
-	var Workspace = WorkspaceModule.Workspace
-	this.workspace = new Workspace(tool, sheet)
-
-	//实例化初始化WSRender对象
-	var WSRenderModule = __webpack_require__(16)
-	var WSRender = WSRenderModule.WSRender
-	var wsRender = new WSRender(this, parentNode)
-
-	wsRender.init()
-
-	if (config.WSConfig.isInit && parentNode.getAttribute("url")) {
-		document.getElementById("Init").onclick()
-		config.WSConfig.isInit = false
-	}
-}
-
-module.exports.WSManager = WSManager
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
  * Created by Ian on 17/6/8.
  */
 /**
@@ -355,7 +307,8 @@ var WSStyle =
 	'left: 0;' +
 	'top: 0;' +
 	'width:100%;' +
-	'height:100%;'
+	'height:100%;' +
+	'overflow: hidden'
 
 var SheetDivStyle =
 	'position: relative;' +
@@ -376,13 +329,14 @@ var SheetTableDivStyle =
 
 var SliderBarStyle =
 	'display: inline-block;' +
-	'position: relative;' +
+	'position: absolute;' +
 	'right :0;' +
 	'top: 0;' +
 	'width: 0;' +
 	'height: 100%;' +
 	'background-color: gray;' +
-	'transition: all 0.5s ease;'
+	'transition: all 0.5s ease;' +
+	'overflow: auto;'
 
 var ToggleDivCloseLeft = 'left: 95%;'
 var ToggleDivOpenLeft = 'left: 76%;'
@@ -416,6 +370,46 @@ var ToggleDivHoverStyle =
 	'user-select: none;' +
 	'cursor: pointer;' +
 	'transition: all 0.5s ease;'
+
+var PaneStyle =
+	'padding: 10px;' +
+	'top: 0;' +
+	'left: 0;'
+
+var PaneTitleStyle =
+	'border-bottom: solid 1px rgba(255,255,255,0.3);' +
+	'color: rgba(255,255,255,0.9);' +
+	'margin-bottom: 10px;' +
+	'font-size: 0.9em;' +
+	'user-select: none;' +
+	'cursor: pointer;'
+
+var PaneContentCloseStyle =
+	'height: 0;' +
+	'width: 100%;' +
+	'min-height: 0px;' +
+	'background-color: rgba(255,255,255,0.1);' +
+	'border-radius: 8px;' +
+	'transition: all 0.5s ease;'
+
+var PaneContentOpenStyle =
+	'height: 200px;' +
+	'width: 100%;' +
+	'min-height: 50px;' +
+	'background-color: rgba(255,255,255,0.1);' +
+	'border-radius: 8px;' +
+	'transition: all 0.5s ease;'
+
+var ArrowDownStyle =
+	'display: inline-block;' +
+	'right: 0;' +
+	'transition: all 0.5s ease;'
+
+var ArrowUpStyle =
+	'display: inline-block;' +
+	'right: 0;' +
+	'transform: rotate(180deg);' +
+	'transition: all 0.5s ease'
 
 var CellPropDivStyle =
 	'position: absolute;' +
@@ -536,6 +530,15 @@ module.exports.ToggleDivCloseLeft = ToggleDivCloseLeft
 module.exports.ToggleDivStyle =  ToggleDivStyle
 module.exports.ToggleDivHoverStyle = ToggleDivHoverStyle
 
+module.exports.PaneStyle = PaneStyle
+module.exports.PaneTitleStyle = PaneTitleStyle
+
+module.exports.PaneContentCloseStyle = PaneContentCloseStyle
+module.exports.PaneContentOpenStyle = PaneContentOpenStyle
+
+module.exports.ArrowDownStyle = ArrowDownStyle
+module.exports.ArrowUpStyle = ArrowUpStyle
+
 module.exports.CellPropDivStyle = CellPropDivStyle
 
 module.exports.InputStyle = InputStyle
@@ -569,7 +572,7 @@ module.exports.ColorSelectDivStyle = ColorSelectDivStyle
 module.exports.SliderBarStyle = SliderBarStyle
 
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 //鼠标和键盘事件
@@ -578,7 +581,7 @@ module.exports.SliderBarStyle = SliderBarStyle
 // var Util=UtilModule.Util
 // var util=new Util()
 
-var SheetRenderModule = __webpack_require__(5)
+var SheetRenderModule = __webpack_require__(3)
 var SheetRender = SheetRenderModule.SheetRender
 
 var SheetEventHandler = function (sheet) {
@@ -646,8 +649,8 @@ SheetEventHandler.prototype.mouseUp = function (element) {
     if (this.sheet.isMouseDown || this.sheet.isDraging) {
         if (element.id) {
             var dragBar = document.getElementById('dragBar')
-            dragBar.style.left = getLeft(element) +  element.offsetWidth -8+ 'px'
-            dragBar.style.top = getTop(element) +element.offsetHeight-8+ 'px'
+            dragBar.style.left = element.offsetLeft +  element.offsetWidth -8+ 'px'
+            dragBar.style.top = element.offsetTop +element.offsetHeight-8+ 'px'
             dragBar.style.display = 'block'
             this.sheet.lastCellid = element.id
             this.sheet.editCells = this.sheet.getColAndRow()
@@ -672,9 +675,9 @@ SheetEventHandler.prototype.dblclick = function (element) {
         var input = document.getElementById('input')
         input.style.display = 'block'
         input.style.backgroundColor = '#efe'
-        input.style.left = getLeft(element) + 'px'
-        input.style.top = getTop(element) + 'px'
-        input.style.height = element.offsetHeight + 'px'
+        input.style.left = element.offsetLeft + 'px'
+        input.style.top = element.offsetTop + 'px'
+        input.style.height = element.offsetHeight  + 'px'
         input.style.width = element.offsetWidth + 'px'
         if (this.sheet.cells[element.id]) {
             input.value = this.sheet.cells[element.id].content
@@ -950,116 +953,206 @@ SheetEventHandler.prototype.multiLineBlur = function (text) {
     this.sheet.render()
     this.sheet.isMultiLineEditing = false
 }
-// SheetEventHandler.prototype.setCellProp=function(element,e){
-//     if(e){
-//         var cellPropDiv=document.getElementById("cellProp")
-//         cellPropDiv.style.display='block'
-//         var left=element.offsetLeft
-//         var top=element.offsetTop
-//         cellPropDiv.style.top=top+element.offsetHeight+26+'px'
-//         cellPropDiv.style.left=left+element.offsetWidth+9+'px'
-//         var cellPropTable=document.createElement('table')
-//         cellPropDiv.appendChild(cellPropTable)
-//         var tr=document.createElement('tr')
-//         cellPropTable.appendChild(tr)
-//         var th=document.createElement('th')
-//         th.innerHTML='属性名称'
-//         tr.appendChild(th)
-//         th=document.createElement('th')
-//         th.innerHTML='属性值'
-//         tr.appendChild(th)
-//         for (var key in e) {
-//             if(e[key]!=''){
-//                 var tr=document.createElement('tr')
-//                 cellPropTable.appendChild(tr)
-//                 var td=document.createElement('td')
-//                 td.innerHTML=key
-//                 tr.appendChild(td)
-//                 var td=document.createElement('td')
-//                 td.innerHTML=e[key]
-//                 tr.appendChild(td)
-//             }
-//         }
-//         this.addProp(element,cellPropTable)
-//     }
-// }
-// SheetEventHandler.prototype.addProp=function(ele,cellPropTable){
-//     var SheetEventHandler=this
-//     var tr=document.createElement('tr')
-//     cellPropTable.appendChild(tr)
-//     var td=document.createElement('td')
-//     var inputTd1=document.createElement('input')
-//     inputTd1.setAttribute('list','prop')
-//     td.appendChild(inputTd1)
-//     var datalist=document.createElement('datalist')
-//     datalist.id='prop'
-//     td.appendChild(datalist)
-//     var option=document.createElement('option')
-//     option.value='foregroundColor'
-//     datalist.appendChild(option)
-//     option=document.createElement('option')
-//     option.value='bold'
-//     datalist.appendChild(option)
-//     option=document.createElement('option')
-//     option.value='backgroundColor'
-//     datalist.appendChild(option)
-//     option=document.createElement('option')
-//     option.value='italic'
-//     datalist.appendChild(option)
-//     option=document.createElement('option')
-//     option.value='fontSize'
-//     datalist.appendChild(option)
-//     tr.appendChild(td)
-//     var td=document.createElement('td')
-//     var inputTd2=document.createElement('input')
-//     td.appendChild(inputTd2)
-//     tr.appendChild(td)
-//     inputTd1.onclick=function(){
-//         SheetEventHandler.firstCell=this
-//     }
-//     inputTd2.onclick=function(){
-//         SheetEventHandler.firstCell=this
-//     }
-//     inputTd1.onblur=function(){
-//         SheetEventHandler.firstCell=ele
-//         var input2=this.parentNode.nextSibling.firstChild
-//         if(inputTd1.value!=null &&inputTd1.value !=''
-//             &&input2.value!=null &&input2.value !=''){
-//             cellRender.renderCell(ele.id,inputTd1.value,input2.value)
-//             if(!this.parentNode.parentNode.nextSibling){
-//                 SheetEventHandler.addProp(ele,cellPropTable)
-//             }
-//         }
-//
-//     }
-//     inputTd2.onblur=function(){
-//         SheetEventHandler.firstCell=ele
-//         var input1=this.parentNode.previousSibling.firstChild
-//         if(input1.value!=null &&input1.value !=''
-//             &&inputTd2.value!=null &&inputTd2.value !=''){
-//             cellRender.renderCell(ele.id,input1.value,inputTd2.value)
-//             if(!this.parentNode.parentNode.nextSibling){
-//                 SheetEventHandler.addProp(ele,cellPropTable)
-//             }
-//         }
-//     }
-// }
-
-//获取元素的纵坐标
-function getTop(e) {
-    var offset = e.offsetTop;
-    if (e.offsetParent != null) offset += getTop(e.offsetParent);
-    return offset;
-}
-
-//获取元素的横坐标
-function getLeft(e) {
-    var offset = e.offsetLeft
-    if (e.offsetParent != null) offset += getLeft(e.offsetParent)
-    return offset
-}
 
 module.exports.SheetEventHandler = SheetEventHandler
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * 渲染表格
+ */
+
+var config = __webpack_require__(0)
+var style = __webpack_require__(1)
+var SliderBarRender = __webpack_require__(12).SliderBarRender
+// config.CellConfig
+var SheetRender = function (sheet) {
+	this.sheet=sheet
+}
+
+SheetRender.prototype.init = function (sheetDiv) {
+
+	sheetDiv.style = style.SheetDivStyle
+
+	var sheetTableDiv = document.createElement('div')
+	sheetTableDiv.style = style.SheetTableDivStyle
+
+	var sheetTable = document.createElement('table')
+    sheetTable.style = style.SheetTableStyle
+	sheetTable.cellSpacing = '10px'
+
+	var sliderBarDiv = document.createElement('div')
+	var sliderBarRender = new SliderBarRender(this.sheet, sheetDiv)
+	sliderBarRender.init(sliderBarDiv, sheetTableDiv)
+	//sheetTable.cellSpacing = '10px'//
+	sheetTable.id = 'sheetTable'
+    sheetDiv.appendChild(sheetTable)
+
+    sheetTableDiv.appendChild(sheetTable)
+
+	sheetDiv.appendChild(sheetTableDiv)
+	sheetDiv.appendChild(sliderBarDiv)
+
+    // var cellPropDiv = document.createElement("div")
+    // cellPropDiv.id = config.CellPropConfig.id
+	//
+
+    // cellPropDiv.style = style.CellPropDivStyle
+
+    // sheetDiv.appendChild(cellPropDiv)
+
+	//表格的具体渲染
+	this.renderSheet(this.sheet, sheetTable)
+}
+
+/**
+ * 构建表格的数据模型
+ * 一个存放表头的二维数组
+ * @param rowNum
+ * @param colNum
+ */
+function createHeader(rowNum, colNum) {
+	var gridHeader =  []
+	for(var a=0;a<rowNum+1;a++){
+        gridHeader[a] = []
+
+		for(var b=0;b<colNum+1;b++){
+            gridHeader[a][b] = null
+		}
+	}
+	var startString = "A"
+
+	for(var i=1; i<colNum+1; i++){
+        gridHeader[0][i] = String.fromCharCode(startString.charCodeAt(0) + i - 1)
+	}
+
+	for(var j=1; j<rowNum+1; j++){
+        gridHeader[j][0] = j
+	}
+
+	return gridHeader
+}
+/**
+ * 表格渲染
+ * @param sheet
+ * @param sheetTable
+ */
+SheetRender.prototype.renderSheet = function(sheet, sheetTable) {
+    for (var child = sheetTable.firstChild; child != null; child = sheetTable.firstChild) {
+        sheetTable.removeChild(child);
+    }
+    var gridHeader = createHeader(sheet.rowNum, sheet.colNum)
+
+    var rowNum = gridHeader.length
+    var colNum = gridHeader[0].length
+
+    var rowHead = document.createElement('tr')
+    sheetTable.appendChild(rowHead)
+    //渲染第一行表头
+    for (var i = 0; i < colNum; i++) {
+        var rowHeadTH = document.createElement('th')
+        // rowHeadTH.style.height = '20px'
+        rowHeadTH.id = gridHeader[0][i] + '_0'
+        rowHead.appendChild(rowHeadTH)
+
+        var rowHeadDiv = document.createElement('div')
+        rowHeadTH.appendChild(rowHeadDiv)
+        // 第一行第一列特殊处理
+        if (i === 0) {
+            //rowHeadTH.style.width = '29px'
+        } else {
+            rowHeadDiv.innerHTML = gridHeader[0][i]
+            rowHeadDiv.style.width = config.CellConfig.width + 'px'
+        }
+    }
+
+    var SheetEventBinderModule = __webpack_require__(10)
+    var SheetEventBinder = SheetEventBinderModule.SheetEventBinder
+    var sheetEventBinder = new SheetEventBinder(sheet)
+
+    //渲染除第一行外单元格
+    for (var j = 1; j < rowNum; j++) {
+        var rowTR = document.createElement('tr')
+        sheetTable.appendChild(rowTR)
+
+        for (var k = 0; k < colNum; k++) {
+            //表格第一列特殊处理
+            if (k === 0) {
+                var rowTH = document.createElement('th')
+                rowTH.id = '@_' + gridHeader[j][0]
+                rowTR.appendChild(rowTH)
+                var rowDiv = document.createElement('div')
+                rowDiv.style.height = 25 + 'px'
+                rowTH.appendChild(rowDiv)
+                rowDiv.innerHTML = gridHeader[j][k]
+            } else {
+                var rowTD = document.createElement('td')
+                rowTD.id = gridHeader[0][k] + "_" + j
+                rowTR.appendChild(rowTD)
+                if (!sheet.isPreview) {
+                    sheetEventBinder.initRowTD(rowTD)
+                }
+                var rowDiv = document.createElement('div')
+                rowTD.className = "noWrap"
+                rowTD.appendChild(rowDiv)
+            }
+        }
+    }
+    if (!sheet.isPreview) {
+        sheetTable.style.borderCollapse = 'collapse'
+        sheetTable.style.border = '1px solid #ccc'
+        var input = document.createElement('input')
+        input.style = style.InputStyle
+        input.id = config.InputConfig.id
+
+        sheetEventBinder.initInput(input)
+
+
+        sheetTable.appendChild(input)
+
+        var clipBoard = document.createElement('textarea') // used for ctrl-c/ctrl-v where an invisible text area is needed
+        clipBoard.style = style.ClipBoardStyle
+        clipBoard.value = config.ClipBoardConfig.value;
+        clipBoard.id = config.ClipBoardConfig.id;
+        sheetTable.appendChild(clipBoard)
+
+        // var span = document.createElement('span') // 用于获得字符串的显示长度
+        // span.style = 'visibility: hidden;white-space: nowrap;filter:alpha(opacity=0);'
+        // span.value = '';
+        // span.id = 'sp'
+        // sheetTable.appendChild(span)
+
+        var multiLine = document.createElement('textarea')
+        multiLine.style = 'position: absolute;left: 30px;top: 20px;display:none;'
+        multiLine.style.left = screen.width / 2 - 150 + 'px'
+        multiLine.style.top = screen.height / 2 - 300 + 'px'
+        multiLine.style.width = 400 + 'px'
+        multiLine.style.height = 400 + 'px'
+        multiLine.value = '';
+        multiLine.id = 'multiLine1'
+        if (!config.WSConfig.isPreview) {
+            sheetEventBinder.initMultiLine(multiLine)
+        }
+        sheetTable.appendChild(multiLine)
+        var dragBar = document.createElement('div')
+        dragBar.style = 'position: absolute;'
+        dragBar.style.backgroundColor = 'yellow'
+        dragBar.style.width = 8 + 'px'
+        dragBar.style.height = 8 + 'px'
+        dragBar.style.display = 'none'
+        dragBar.id = 'dragBar'
+        dragBar.webkitUserDrag = 'true'
+        if (!config.WSConfig.isPreview) {
+            sheetEventBinder.initDragBar(dragBar)
+        }
+        sheetTable.appendChild(dragBar)
+    }
+
+}
+
+module.exports.SheetRender = SheetRender
 
 /***/ }),
 /* 4 */
@@ -1106,13 +1199,12 @@ var Cell = function (coord) {
 	this.value = null
 
 	this.show = true
-	this.area = [1,1]
 
 	this.bold = false
 	this.italic = false
 
-	//this.colSpan = 1
-	//this.rowSpan = 1
+	this.colSpan = 1
+	this.rowSpan = 1
 }
 
 module.exports.Cell = Cell
@@ -1122,209 +1214,14 @@ module.exports.Cell = Cell
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
- * 渲染表格
- */
-
-var config = __webpack_require__(0)
-var style = __webpack_require__(2)
-var SliderBarRender = __webpack_require__(11).SliderBarRender
-// config.CellConfig
-var SheetRender = function (sheet) {
-	this.sheet=sheet
-}
-
-SheetRender.prototype.init = function (sheetDiv) {
-
-	sheetDiv.style = style.SheetDivStyle
-
-	var sheetTableDiv = document.createElement('div')
-	sheetTableDiv.style = style.SheetTableDivStyle
-
-	var sheetTable = document.createElement('table')
-    sheetTable.style = style.SheetTableStyle
-	sheetTable.cellSpacing = '10px'
-
-	var sliderBarDiv = document.createElement('div')
-	var sliderBarRender = new SliderBarRender(this.sheet, sheetDiv)
-	sliderBarRender.init(sliderBarDiv, sheetTableDiv)
-
-    sheetTableDiv.appendChild(sheetTable)
-
-	sheetDiv.appendChild(sheetTableDiv)
-	sheetDiv.appendChild(sliderBarDiv)
-
-    // var cellPropDiv = document.createElement("div")
-    // cellPropDiv.id = config.CellPropConfig.id
-	//
-
-    // cellPropDiv.style = style.CellPropDivStyle
-
-    // sheetDiv.appendChild(cellPropDiv)
-
-	//表格的具体渲染
-	renderSheet(this.sheet, sheetTable)
-}
-
-SheetRender.prototype.reRender = function() {
-	while(this.sheet.undostackCache !== []){
-
-	}
-}
-
-
-/**
- * 构建表格的数据模型
- * 一个存放表头的二维数组
- * @param rowNum
- * @param colNum
- */
-function createHeader(rowNum, colNum) {
-	var gridHeader =  []
-	for(var a=0;a<rowNum+1;a++){
-        gridHeader[a] = []
-
-		for(var b=0;b<colNum+1;b++){
-            gridHeader[a][b] = null
-		}
-	}
-	var startString = "A"
-
-	for(var i=1; i<colNum+1; i++){
-        gridHeader[0][i] = String.fromCharCode(startString.charCodeAt(0) + i - 1)
-	}
-
-	for(var j=1; j<rowNum+1; j++){
-        gridHeader[j][0] = j
-	}
-
-	return gridHeader
-}
-/**
- * 表格渲染
- * @param sheet
- * @param sheetTable
- */
-function renderSheet(sheet, sheetTable) {
-	var gridHeader = createHeader(sheet.rowNum,  sheet.colNum)
-
-	var rowNum = gridHeader.length
-	var colNum = gridHeader[0].length
-
-	var rowHead = document.createElement('tr')
-	sheetTable.appendChild(rowHead)
-	//渲染第一行表头
-	for(var i=0;i<colNum;i++){
-		var rowHeadTH  = document.createElement('th')
-		// rowHeadTH.style.height = '20px'
-		rowHeadTH.id = gridHeader[0][i]+'_0'
-		rowHead.appendChild(rowHeadTH)
-
-		var rowHeadDiv = document.createElement('div')
-		rowHeadTH.appendChild(rowHeadDiv)
-		// 第一行第一列特殊处理
-		if(i === 0){
-            //rowHeadTH.style.width = '29px'
-		}else{
-			rowHeadDiv.innerHTML = gridHeader[0][i]
-            rowHeadDiv.style.width = config.CellConfig.width + 'px'
-		}
-	}
-
-    var SheetEventBinderModule = __webpack_require__(10)
-    var SheetEventBinder=SheetEventBinderModule.SheetEventBinder
-    var sheetEventBinder=new SheetEventBinder(sheet)
-
-	//渲染除第一行外单元格
-	for(var j = 1;j<rowNum;j++){
-		var rowTR = document.createElement('tr')
-		sheetTable.appendChild(rowTR)
-
-		for(var k=0; k<colNum;k++){
-			//表格第一列特殊处理
-			if(k === 0){
-				var rowTH = document.createElement('th')
-				rowTH.id = '@_' + gridHeader[j][0]
-				rowTR.appendChild(rowTH)
-				var rowDiv = document.createElement('div')
-				rowTH.appendChild(rowDiv)
-                rowDiv.innerHTML = gridHeader[j][k]
-			}else {
-				var rowTD = document.createElement('td')
-                rowTD.id = gridHeader[0][k]+"_"+j
-                rowTR.appendChild(rowTD)
-                if(!config.WSConfig.isPreview){
-                    sheetEventBinder.initRowTD(rowTD)
-                }
-				var rowDiv = document.createElement('div')
-				rowTD.className = "noWrap"
-                rowTD.appendChild(rowDiv)
-			}
-		}
-	}
-	var input = document.createElement('input')
-	input.style = style.InputStyle
-	input.id = config.InputConfig.id
-    if(!config.WSConfig.isPreview){
-        sheetEventBinder.initInput(input)
-    }
-
-	sheetTable.appendChild(input)
-
-    var clipBoard = document.createElement('textarea') // used for ctrl-c/ctrl-v where an invisible text area is needed
-	clipBoard.style = style.ClipBoardStyle
-	clipBoard.value = config.ClipBoardConfig.value;
-	clipBoard.id = config.ClipBoardConfig.id;
-    sheetTable.appendChild(clipBoard)
-
-    // var span = document.createElement('span') // 用于获得字符串的显示长度
-    // span.style = 'visibility: hidden;white-space: nowrap;filter:alpha(opacity=0);'
-    // span.value = '';
-    // span.id = 'sp'
-    // sheetTable.appendChild(span)
-
-    var multiLine = document.createElement('textarea')
-    multiLine.style = 'position: absolute;left: 30px;top: 20px;display:none;'
-	multiLine.style.left = screen.width/2 -150+ 'px'
-    multiLine.style.top = screen.height/2 -300+ 'px'
-    multiLine.style.width = 400 + 'px'
-    multiLine.style.height = 400 + 'px'
-    multiLine.value = '';
-    multiLine.id = 'multiLine1'
-    if(!config.WSConfig.isPreview){
-        sheetEventBinder.initMultiLine(multiLine)
-    }
-	sheetTable.appendChild(multiLine)
-    var dragBar = document.createElement('div')
-    dragBar.style = 'position: absolute;'
-    dragBar.style.backgroundColor = 'yellow'
-    dragBar.style.width = 8 + 'px'
-    dragBar.style.height = 8 + 'px'
-    dragBar.style.display = 'none'
-	dragBar.id = 'dragBar'
-	dragBar.webkitUserDrag = 'true'
-    if(!config.WSConfig.isPreview){
-        sheetEventBinder.initDragBar(dragBar)
-    }
-	sheetTable.appendChild(dragBar)
-}
-
-
-
-module.exports.SheetRender = SheetRender
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
  工具栏绑定事件
  */
 
-var ToolEventHandlerModule = __webpack_require__(13)
+var ToolEventHandlerModule = __webpack_require__(14)
 var ToolEventHandler = ToolEventHandlerModule.ToolEventHandler
 var toolEventHandler = null
 
-var SheetEventHandlerModule = __webpack_require__(3)
+var SheetEventHandlerModule = __webpack_require__(2)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
@@ -1497,6 +1394,58 @@ ToolEventBinder.prototype.initFileInput = function (fileInput) {
 module.exports.ToolEventBinder = ToolEventBinder
 
 /***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * 整体工作管理对象
+ * @constructor
+ */
+var config = __webpack_require__(0)
+var WSManager = function () {
+}
+
+WSManager.prototype.init = function (parentNode) {
+
+	//实例化初始化Tool对象
+	var ToolModule = __webpack_require__(13)
+	var Tool = ToolModule.Tool
+	var tool = new Tool()
+
+	//实例化初始化UndoStack对象
+	var UndoStackModule = __webpack_require__(16)
+	var UndoStack = UndoStackModule.UndoStack
+	var undoStack = new UndoStack()
+
+	//实例化初始化Sheet对象
+	var SheetModule = __webpack_require__(9)
+	var Sheet = SheetModule.Sheet
+	var sheet = new Sheet(undoStack)
+
+	//实例化初始化SliderBar对象
+	var SliderBarModule = __webpack_require__(11)
+
+	//实例化初始化Workspace对象
+	var WorkspaceModule = __webpack_require__(18)
+	var Workspace = WorkspaceModule.Workspace
+	this.workspace = new Workspace(tool, sheet)
+
+	//实例化初始化WSRender对象
+	var WSRenderModule = __webpack_require__(17)
+	var WSRender = WSRenderModule.WSRender
+	var wsRender = new WSRender(this, parentNode)
+
+	wsRender.init()
+
+	if (config.WSConfig.isInit && parentNode.getAttribute("url")) {
+		document.getElementById("Init").onclick()
+		config.WSConfig.isInit = false
+	}
+}
+
+module.exports.WSManager = WSManager
+
+/***/ }),
 /* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1504,7 +1453,7 @@ module.exports.ToolEventBinder = ToolEventBinder
  * Created by Ian on 17/6/5.
  */
 
-var WSManagerModule = __webpack_require__(1)
+var WSManagerModule = __webpack_require__(6)
 var WSManager = WSManagerModule.WSManager
 var wsManager=new WSManager()
 
@@ -1642,7 +1591,7 @@ CellRender.prototype.renderCell = function (id, cmd, value) {
                     ele.style.borderBottom = '1px solid #000'
                 } else if(!this.sheet.cells[newId] || !this.sheet.cells[newId].topFrame){
                     ele.style.borderBottom = ''
-                    console.log(newId)
+                    // console.log(newId)
                 }
                 // if (value) ele.style.borderBottom = '2px solid #000'
                 // else ele.style.borderBottom = ''
@@ -2039,6 +1988,10 @@ Sheet.prototype.redo = function () {
 
 }
 
+Sheet.prototype.setIdAttr = function (id,cmd,value) {
+    this.cellRender.renderCell(id,cmd,value)
+}
+
 Sheet.prototype.getColAndRow = function (firstCellid, lastCellid) {
     if (firstCellid == null) {
         firstCellid = this.firstCellid
@@ -2110,7 +2063,7 @@ module.exports.Sheet = Sheet
 /***/ (function(module, exports, __webpack_require__) {
 
 //事件绑定对象
-var SheetEventHandlerModule = __webpack_require__(3)
+var SheetEventHandlerModule = __webpack_require__(2)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
@@ -2121,7 +2074,7 @@ var SheetEventBinder = function (sheet) {
         sheet.isMouseDown = false
     }
     document.onkeydown = function (event) {
-        sheetEventHandler.keyDown(event)
+        if(!sheet.isPreview)  sheetEventHandler.keyDown(event)
 
         if (!sheet.isMultiLineEditing && !sheet.isEditing) return false
     }
@@ -2171,13 +2124,22 @@ module.exports.SheetEventBinder = SheetEventBinder
 
 /***/ }),
 /* 11 */
+/***/ (function(module, exports) {
+
+/**
+ * Created by Ian on 17/7/22.
+ */
+
+
+/***/ }),
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  * Created by Ian on 17/7/22.
  */
 
-var style  = __webpack_require__(2)
+var style  = __webpack_require__(1)
 var config = __webpack_require__(0)
 
 var SliderBarRender = function (sheet, sheetDiv) {
@@ -2192,19 +2154,20 @@ SliderBarRender.prototype.init = function (sliderBarDiv, sheetTableDiv) {
 
 	var toggleDiv = document.createElement('div')
 
-	// sliderBarDiv.style = style.SliderBarStyle
-
-	// if(this.isOpen){
-	// 	sheetTableDiv.style.width = '75%'
-	// 	sliderBarDiv.style.width = '25%'
-	// }else{
-	// 	sheetTableDiv.style.width = '100%'
-	// 	sliderBarDiv.style.width = '0'
-	// }
-
-	// console.log(this.sheet)
 	renderBar(sliderBarDiv, sheetTableDiv)
 	renderToggle(this.sheetDiv, toggleDiv)
+
+	var sliderPaneTitles = config.SlideBarConfig.sliderPaneTitle
+	var sliderPanes = {}
+
+	for(var paneTitle in sliderPaneTitles){
+		var paneDiv = document.createElement('div')
+		paneDiv.style = style.PaneStyle
+		sliderPanes[sliderPaneTitles[paneTitle]] = paneDiv
+
+		sliderBarDiv.appendChild(paneDiv)
+	}
+	renderPanes(sliderPanes)
 
 	var isOpen = this.isOpen
 	var sheetDiv = this.sheetDiv
@@ -2253,6 +2216,10 @@ function renderToggle(sheetDiv, toggleDiv, isOpen) {
 
 	// console.log(sheet)
 	sheetDiv.appendChild(toggleDiv)
+
+	setTimeout(function () {
+		toggleDiv.style.opacity = '0.5'
+	}, 5000)
 }
 
 function renderBar(sliderBarDiv, sheetTableDiv, isOpen) {
@@ -2268,11 +2235,56 @@ function renderBar(sliderBarDiv, sheetTableDiv, isOpen) {
 	}
 }
 
+function renderPanes(sliderPanes) {
+
+	for(var div in sliderPanes) {
+		var isOpen = false
+		var paneDiv = sliderPanes[div]
+		var paneTitle = div
+
+		var paneTitleDiv = document.createElement('div')
+		paneTitleDiv.innerHTML = paneTitle
+		paneTitleDiv.style = style.PaneTitleStyle
+
+		var arrowDiv = document.createElement('div')
+		arrowDiv.innerHTML = config.SlideBarConfig.iconHtmlMap[config.SlideBarConfig.arrowIcon]
+		paneTitleDiv.appendChild(arrowDiv)
+
+		var paneContentDiv = document.createElement('div')
+
+		renderPane(arrowDiv, paneContentDiv, isOpen)
+
+		//第一次写闭包！！！
+		paneTitleDiv.onclick = function (arrowDiv, paneContentDiv, isOpen) {
+			return function () {
+				isOpen = !isOpen
+				renderPane(arrowDiv, paneContentDiv, isOpen)
+			}
+		}(arrowDiv, paneContentDiv, isOpen)
+		// paneContentDiv.style = style.PaneContentOpenStyle
+
+
+		paneDiv.appendChild(paneTitleDiv)
+		paneDiv.appendChild(paneContentDiv)
+	}
+}
+
+function renderPane(arrowDiv, paneContentDiv, isOpen) {
+
+	if(isOpen){
+		paneContentDiv.style = style.PaneContentOpenStyle
+		arrowDiv.style = style.ArrowUpStyle
+	}else{
+		paneContentDiv.style = style.PaneContentCloseStyle
+		arrowDiv.style = style.ArrowDownStyle
+	}
+}
+
 
 module.exports.SliderBarRender = SliderBarRender
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -2290,7 +2302,7 @@ var Tool = function () {
 module.exports.Tool = Tool
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -2299,17 +2311,21 @@ module.exports.Tool = Tool
 var config = __webpack_require__(0)
 
 
+var SheetRenderModule = __webpack_require__(3)
+var SheetRender = SheetRenderModule.SheetRender
+var sheetRender = null
 // var CellRenderModule = require('CellRender')
 // var CellRender = CellRenderModule.CellRender
 // var cellRender = null
 
-var SheetEventHandlerModule = __webpack_require__(3)
+var SheetEventHandlerModule = __webpack_require__(2)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
 var ToolEventHandler = function (sheet) {
     this.sheet = sheet
-    // cellRender = new CellRender(sheet)
+    sheetRender = new SheetRender(sheet)
+    //cellRender = new CellRender(sheet)
     sheetEventHandler = new SheetEventHandler(sheet)
 }
 ToolEventHandler.prototype.buttonClick = function (action, value) {
@@ -2330,7 +2346,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
             if (JSON.stringify(e) !== "{}") {
                 var needEditCells = []
                 for (var key in e) {
-                    if (e[key]["content"] != '' && e[key]["content"].indexOf('=') == 0) {
+                    if (isNaN(e[key]["content"]) && e[key]["content"] != '' && e[key]["content"].indexOf('=') == 0) {
                         var formula = {
                             'coord': key,
                             'value': e[key]["content"]
@@ -2338,6 +2354,13 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                         needEditCells.push(formula)
                         this.sheet.cells[key]["formula"] = e[key]["content"]
                     }
+                    // if(e[key]["formula"]!==undefined && e[key]["formula"]!=''){
+                    //     var formula = {
+                    //         'coord': key,
+                    //         'value': e[key]["formula"]
+                    //     }
+                    //     needEditCells.push(formula)
+                    // }
                 }
                 if (needEditCells.length > 0) {
                     var ajax
@@ -2349,7 +2372,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                         alert("请升级至最新版本的浏览器")
                     }
                     if (ajax !== null) {
-                        ajax.open("POST", "http://localhost:8088/qianmo-service/changeContent", true)
+                        ajax.open("POST", "http://123.56.22.114:8080/qianmo-service/changeContent", true)
                         needEditCells = JSON.stringify(needEditCells)
                         ajax.send(needEditCells)
                         ajax.onreadystatechange = function () {
@@ -2367,107 +2390,99 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                                     }
                                     e[CellList[key].coord]["content"] = value
                                 }
-                                config.WSConfig.isPreview = true
-                                var WSManagerModule = __webpack_require__(1)
-                                var WSManager = WSManagerModule.WSManager
-                                var newWsManager = new WSManager()
-                                var parentNode = document.getElementById('QianMoApp2')
-                                // parentNode.firstChild.remove()
-                                newWsManager.init(parentNode)
-                                for (var key in e) {
-                                    for (var key1 in e[key]) {
-                                        if (key1 !== "formula") {
-                                            sheet.renderCell(key,key1, e[key][key1])
-                                        }
+                                sheet.isPreview = true
+                                document.getElementById('previewDiv').style.display = 'block'
+                                document.getElementById('editDiv').style.display = 'none'
+                                document.getElementById('menuDiv').isDisabled = true
+                                sheetRender.renderSheet(sheet,document.getElementById('sheetTable'))
 
+                                for (cell in sheet.cells){
+                                    for (attr in sheet.cells[cell]){
+                                        if(attr != 'coord')sheet.setIdAttr(sheet.cells[cell].coord,attr,sheet.cells[cell][attr])
+                                        //console.log(attr)
                                     }
                                 }
                             }
                         }
                     }
                 }else{
-                    config.WSConfig.isPreview = true
-                    var WSManagerModule = __webpack_require__(1)
-                    var WSManager = WSManagerModule.WSManager
-                    var newWsManager = new WSManager()
-                    var parentNode = document.getElementById('QianMoApp2')
-                    // parentNode.firstChild.remove()
-                    newWsManager.init(parentNode)
-                    for (var key in e) {
-                        for (var key1 in e[key]) {
-                            if (key1 !== "formula") {
-                                sheet.renderCell(key,key1, e[key][key1])
-                            }
+                    sheet.isPreview = true
+                    document.getElementById('previewDiv').style.display = 'block'
+                    document.getElementById('editDiv').style.display = 'none'
+                    document.getElementById('menuDiv').isDisabled = true
+                    sheetRender.renderSheet(sheet,document.getElementById('sheetTable'))
+
+                    for (cell in sheet.cells){
+                        for (attr in sheet.cells[cell]){
+                            if(attr != 'coord')sheet.setIdAttr(sheet.cells[cell].coord,attr,sheet.cells[cell][attr])
                         }
                     }
                 }
-                document.getElementById('QianMoApp').style.display='none'
-                document.getElementById('QianMoApp2').style.display='inline'
             } else {
                 alert("无内容，不允许预览！")
             }
 
-            console.log(this.sheet.cells)
             break
         case "Edit":
-            document.getElementById('QianMoApp2').style.display='none'
-            document.getElementById('QianMoApp').style.display='inline'
-            console.log(this.sheet.cells)
-            config.WSConfig.isPreview = false
-            var WSManagerModule = __webpack_require__(1)
-            var WSManager = WSManagerModule.WSManager
-            var newWsManager = new WSManager()
-            var parentNode = document.getElementById('QianMoApp')
-            parentNode.firstChild.remove()
-            newWsManager.init(parentNode)
-            var e = sheet.cells
-            console.log(e)
-            for (var key in e) {
-                var cells=sheet.getColAndRow(key,key)
-                for (var key1 in e[key]) {
-                    if (key1 === "formula" && e[key][key1] !== "") {
-                        // cellRender.renderCell(key, "content", e[key][key1])
-                        sheet.setAttr('content', e[key][key1],cells)
-                        sheet.render()
-                    } else {
-                        // cellRender.renderCell(key, key1, e[key][key1])
-                        sheet.setAttr(key1, e[key][key1],cells)
-                        sheet.render()
+            sheet.isPreview = false
+            document.getElementById('previewDiv').style.display = 'none'
+            document.getElementById('editDiv').style.display = 'block'
+            //document.getElementById('menuDiv').style.display = 'block'
+            sheetRender.renderSheet(sheet,document.getElementById('sheetTable'))
+            // console.log(sheet.cells)
+            for (cell in sheet.cells){
+                for (attr in sheet.cells[cell]){
+                    if(attr != 'coord'){
+                        // console.log(sheet.cells[cell]['formula'])
+                        if(attr==='content' && sheet.cells[cell]['formula']!==undefined&& sheet.cells[cell]['formula']!==''){
+                            sheet.setIdAttr(sheet.cells[cell].coord,attr,sheet.cells[cell]['formula'])
+                        }else{
+                            sheet.setIdAttr(sheet.cells[cell].coord,attr,sheet.cells[cell][attr])
+                        }
                     }
-
                 }
             }
             break
         case "Down":
+            var myMask=document.getElementById('mask')
+            myMask.style.display="block"
             var e = this.sheet.cells
-            console.log(e)
             var a = {}
             var CellList = []
             for (var key in e) {
-                e[key]["area"] = e[key]["area"].split("_")[0] + e[key]["area"].split("_")[1]
-                    + e[key]["area"].split("_")[2]
-                e[key]["area"] = e[key]["area"].split(":")[0] + "-" + e[key]["area"].split(":")[1]
-                var addCell = {
-                    "cellName": key.split("_")[0] + key.split("_")[1],
-                    "area": e[key]["area"],
-                    "content": e[key]["content"] === undefined ? "" : e[key]["content"],
-                    "format": e[key]["format"] === undefined ? "" : e[key]["format"],
-                    "font": e[key]["font"] === undefined ? "" : e[key]["font"],
-                    "fontSize": e[key]["fontSize"] === undefined ? "" : e[key]["fontSize"],
-                    "foregroundColor": e[key]["foregroundColor"] === undefined ? "" : e[key]["foregroundColor"],
-                    "backgroundColor": e[key]["backgroundColor"] === undefined ? "" : e[key]["backgroundColor"],
-                    "formula": e[key]["formula"] === undefined ? "" : e[key]["formula"],
-                    "leftFrame": e[key]["leftFrame"] === undefined ? "" : e[key]["leftFrame"],
-                    "topFrame": e[key]["topFrame"] === undefined ? "" : e[key]["topFrame"],
-                    "rightFrame": e[key]["rightFrame"] === undefined ? "" : e[key]["rightFrame"],
-                    "bottomFrame": e[key]["bottomFrame"] === undefined ? "" : e[key]["bottomFrame"],
-                    "indentation": e[key]["indentation"] === undefined ? "" : e[key]["indentation"],
-                    "alignment": e[key]["alignment"] === undefined ? "" : e[key]["alignment"],
-                    "bold": e[key]["bold"] === undefined ? "" : e[key]["bold"],
-                    "italic": e[key]["italic"] === undefined ? "" : e[key]["italic"]
+                if(e[key].show){
+                    var col=key.split('_')[0]
+                    var row=key.split('_')[1]
+                    col=String.fromCharCode(col.charCodeAt(0)+e[key].colSpan-1)
+                    row=parseInt(row)+e[key].rowSpan-1
+                    var area=key+'_'+col+'_'+row
+                    var content=e[key]["content"] === undefined ? "" : e[key]["content"]=== null ?"":e[key]["content"]=== ""?"":e[key]["content"]+''
+                    var addCell = {
+                        "cellName": key,
+                        "area": area,
+                        "content":content.replace(/&nbsp;/g,''),
+                        "format": e[key]["format"] === undefined ? "" : e[key]["format"],
+                        "font": e[key]["font"] === undefined ? "" : e[key]["font"],
+                        "fontSize": e[key]["fontSize"] === undefined ? "" : e[key]["fontSize"],
+                        "foregroundColor": e[key]["foregroundColor"] === undefined ? "" : e[key]["foregroundColor"],
+                        "backgroundColor": e[key]["backgroundColor"] === undefined ? "" : e[key]["backgroundColor"],
+                        "formula": e[key]["formula"] === undefined ? "" : e[key]["formula"],
+                        "leftFrame": e[key]["leftFrame"] === undefined ? "" : e[key]["leftFrame"],
+                        "topFrame": e[key]["topFrame"] === undefined ? "" : e[key]["topFrame"],
+                        "rightFrame": e[key]["rightFrame"] === undefined ? "" : e[key]["rightFrame"],
+                        "bottomFrame": e[key]["bottomFrame"] === undefined ? "" : e[key]["bottomFrame"],
+                        "indentation": e[key]["indentation"] === undefined ? 0 : e[key]["indentation"],
+                        "alignment": e[key]["alignment"] === undefined ? "" : e[key]["alignment"],
+                        "bold": e[key]["bold"] === undefined ? "" : e[key]["bold"],
+                        "italic": e[key]["italic"] === undefined ? "" : e[key]["italic"],
+                        "vertical":e[key]["vertical"] === undefined ? "" : e[key]["vertical"],
+                        "wrapText":e[key]["wrapText"] === undefined ? "" : e[key]["wrapText"],
+                        "width":e[key]["width"] === undefined ? "" : e[key]["width"],
+                        "height":e[key]["height"] === undefined ? "" : e[key]["height"]
+                    }
+                    // console.log(addCell.content)
+                    CellList.push(addCell)
                 }
-
-                CellList.push(addCell)
             }
             var json= JSON.stringify(CellList)
             var ajax
@@ -2479,11 +2494,10 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","http://localhost:8088/qianmo-service/excelDownload",true)
+                ajax.open("POST","http://123.56.22.114:8080/qianmo-service/excelDownload",true)
                 ajax.onload=function(){
                     if(ajax.status==200){
                         var filename = "";
-                        console.log(ajax.getResponseHeader)
                         var disposition = ajax.getResponseHeader('Content-Disposition');
                         if (disposition && disposition.indexOf('attachment') !== -1) {
                             var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
@@ -2498,7 +2512,6 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                         } else {
                             var URL = window.URL || window.webkitURL;
                             var downloadUrl = URL.createObjectURL(blob);
-                            console.log(downloadUrl)
                             if (filename) {
                                 // use HTML5 a[download] attribute to specify filename
                                 var a = document.createElement("a");
@@ -2508,7 +2521,6 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                                 } else {
                                     a.href = downloadUrl;
                                     a.download = filename;
-                                    console.log(a)
                                     document.body.appendChild(a);
                                     a.click();
                                 }
@@ -2519,9 +2531,10 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                             setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
                         }
                     }
-                    document.getElementById('statu').innerHTML='SUCCESS'
+                    myMask.style.display="none"
                 }
                 ajax.responseType = 'blob'
+                ajax.setRequestHeader('Content-type', 'application/json;charset=utf-8')
                 ajax.send(json)
             }
             break
@@ -2535,7 +2548,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 param=null
             }else{
                 method="POST"
-                url='http://localhost:8088/qianmo-service/getContentJson'
+                url='http://123.56.22.114:8080/qianmo-service/getContentJson'
                 param=param.substring(param.lastIndexOf("\\")+1)
             }
             var ajax
@@ -2552,7 +2565,6 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 ajax.onreadystatechange = function () {
                     if (ajax.readyState === 4 && ajax.status === 200) {
                         var CellList = JSON.parse(ajax.responseText)
-                        console.log(CellList)
                         CellList.forEach(function (e) {
 
                             var area = e['area']
@@ -2586,7 +2598,9 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                                 }
                                 if ((key === 'bottomFrame' || key === 'topFrame' || key === 'leftFrame' ||
                                         key === 'rightFrame') && value === false) continue
-
+                                // if(key==='content' && e['formula']!==undefined && e['formula']!==''){
+                                //     value=e['formula']
+                                // }
                                 sheet.setAttr(key, value, cells)
                             }
                         })
@@ -2695,7 +2709,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 })
                 sheet.render()
                 console.log('paste done!')
-                console.log(sheet.cells)
+                // console.log(sheet.cells)
             } else {
                 console.log('nothing to paste')
             }
@@ -2729,7 +2743,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
             this.sheet.setAttr('merge', value)
             this.sheet.render()
             this.mouseDown(sheet.firstCellid)
-            console.log(sheet.firstCellid)
+            // console.log(sheet.firstCellid)
             this.mouseUp(document.getElementById(sheet.lastCellid))
             break
         // case 'border':
@@ -2939,7 +2953,7 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
             alert('该功能未实现，请期待')
             break
     }
-    if(action !== ('multiLine' || 'copy')){
+    if(action !== ('multiLine' || 'copy' ) && !sheet.isPreview){
         sheetEventHandler.mouseDown(sheet.firstCellid)
         sheetEventHandler.mouseUp(document.getElementById(sheet.lastCellid))
     }
@@ -2949,422 +2963,432 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
 module.exports.ToolEventHandler = ToolEventHandler
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  * 工具栏渲染
  */
 var config = __webpack_require__(0)
-var style = __webpack_require__(2)
+var style = __webpack_require__(1)
 var ToolRender = function (sheet) {
-	this.sheet = sheet
+    this.sheet = sheet
 }
 ToolRender.prototype.init = function (toolDiv, width, height) {
-	var ToolEventBinderModule = __webpack_require__(6)
-	var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
-	// var toolEventBinder = new ToolEventBinder(this.sheet)
+    var ToolEventBinderModule = __webpack_require__(5)
+    var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
+    // var toolEventBinder = new ToolEventBinder(this.sheet)
 
-	toolDiv.style.width = width
-	toolDiv.style.height = height
+    toolDiv.style.width = width + 'px'
+    toolDiv.style.height = height + 'px'
 
-	renderMenu(toolDiv, this.sheet)
+    renderMenu(toolDiv, this.sheet)
 
 }
 
 function renderMenu(toolDiv, sheet) {
-	var menuDiv = document.createElement('div')
-	var buttonBox = document.createElement('div')
+    var menuDiv = document.createElement('div')
+    var buttonBox = document.createElement('div')
 
-	buttonBox.style = style.ButtonBoxStyle
+    buttonBox.style = style.ButtonBoxStyle
 
-	toolDiv.appendChild(menuDiv)
-	toolDiv.appendChild(buttonBox)
+    toolDiv.appendChild(menuDiv)
+    toolDiv.appendChild(buttonBox)
 
-	var toolMenu = config.ToolConfig.menu
+    var toolMenu = config.ToolConfig.menu
 
-	var styleBox = document.createElement('div')
-	styleBox.innerHTML = toolMenu[0]
-	var toolBox = document.createElement('div')
-	toolBox.innerHTML = toolMenu[1]
-	var dataBox = document.createElement('div')
-	dataBox.innerHTML = toolMenu[2]
+    var styleBox = document.createElement('div')
+    styleBox.innerHTML = toolMenu[0]
+    var toolBox = document.createElement('div')
+    toolBox.innerHTML = toolMenu[1]
+    var dataBox = document.createElement('div')
+    dataBox.innerHTML = toolMenu[2]
 
-	var boxes = {
-		styleBox: {node: styleBox, selected: false},
-		toolBox: {node: toolBox, selected: false},
-		dataBox: {node: dataBox, selected: false}
-	}
+    var boxes = {
+        styleBox: {node: styleBox, selected: false},
+        toolBox: {node: toolBox, selected: false},
+        dataBox: {node: dataBox, selected: false}
+    }
+    menuDiv.id = 'menuDiv'
+    menuDiv.style = style.MeunDivStyle
 
-	menuDiv.style = style.MeunDivStyle
+    changeSelected(boxes, 'styleBox')
+    renderTool('styleBox', buttonBox, sheet)
 
-	changeSelected(boxes, 'styleBox')
-	renderTool('styleBox', buttonBox, sheet)
+    styleBox.onclick = function () {
+        if (!sheet.isPreview) {
+            changeSelected(boxes, 'styleBox')
+            renderTool('styleBox', buttonBox, sheet)
+        }
+    }
+    toolBox.onclick = function () {
+        if (!sheet.isPreview) {
+            changeSelected(boxes, 'toolBox')
+            renderTool('toolBox', buttonBox, sheet)
+        }
+    }
+    dataBox.onclick = function () {
+        if (!sheet.isPreview) {
+            changeSelected(boxes, 'dataBox')
+            renderTool('dataBox', buttonBox, sheet)
+        }
+    }
 
-	styleBox.onclick = function () {
-		changeSelected(boxes, 'styleBox')
-		renderTool('styleBox', buttonBox, sheet)
-	}
-	toolBox.onclick = function () {
-		changeSelected(boxes, 'toolBox')
-		renderTool('toolBox', buttonBox, sheet)
-	}
-	dataBox.onclick = function () {
-		changeSelected(boxes, 'dataBox')
-		renderTool('dataBox', buttonBox, sheet)
-	}
-
-	for (var box in boxes) {
-		menuDiv.appendChild(boxes[box].node)
-	}
+    for (var box in boxes) {
+        menuDiv.appendChild(boxes[box].node)
+    }
 
 }
 
 function renderTool(menu, buttonBox, sheet) {
 
-	removeAllChild(buttonBox)
+    removeAllChild(buttonBox)
 
-	var ToolEventBinderModule = __webpack_require__(6)
-	var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
-	var toolEventBinder = new ToolEventBinder(sheet)
+    var ToolEventBinderModule = __webpack_require__(5)
+    var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
+    var toolEventBinder = new ToolEventBinder(sheet)
 
-	var cmdMap = config.ToolConfig.cmdCodeMap
-	var toolHtml = config.ToolConfig.toolHtml
-	var styleHtml = config.ToolConfig.styleHtml
-	var dataHtml = config.ToolConfig.dataHtml
-	var defaultHtml = config.ToolConfig.defaultHtml
+    var cmdMap = config.ToolConfig.cmdCodeMap
+    var toolHtml = config.ToolConfig.toolHtml
+    var styleHtml = config.ToolConfig.styleHtml
+    var dataHtml = config.ToolConfig.dataHtml
+    var defaultHtml = config.ToolConfig.defaultHtml
 
-	if (config.WSConfig.isPreview) {
-		var previewHtml = config.ToolConfig.previewHtml
+    var previewHtml = config.ToolConfig.previewHtml
+    var previewDiv = document.createElement('div')
+    previewHtml.forEach(function (innerhtml) {
 
-		previewHtml.forEach(function (innerhtml) {
+        var buttonDiv = document.createElement('div')
+        buttonDiv.id = innerhtml
+        buttonDiv.style = style.ButtonDivStyle
+        buttonDiv.innerHTML = innerhtml
 
-			var buttonDiv = document.createElement('div')
-			buttonDiv.id = innerhtml
-			buttonDiv.style = style.ButtonDivStyle
-			buttonDiv.innerHTML = innerhtml
+        buttonDiv.onclick = function () {
+            toolEventBinder.buttonClick(innerhtml)
+        }
+        previewDiv.appendChild(buttonDiv)
+    })
+    previewDiv.style.display = 'none'
+    previewDiv.id = 'previewDiv'
+    buttonBox.appendChild(previewDiv)
 
-			buttonDiv.onclick = function () {
-				toolEventBinder.buttonClick(innerhtml)
-			}
-			buttonBox.appendChild(buttonDiv)
-		})
+    var editDiv = document.createElement('div')
+    defaultHtml.forEach(function (innerhtml) {
+        console.log(innerhtml)
+        var buttonDiv = document.createElement('div')
+        buttonDiv.id = innerhtml
+        buttonDiv.style = style.ButtonDivStyle
+        buttonDiv.innerHTML = cmdMap[innerhtml]
+        // if(innerhtml==='Init'){
+        //     buttonDiv.style.display='none'
+        // }
+        buttonDiv.onclick = function () {
+            toolEventBinder.buttonClick(innerhtml)
+        }
+        editDiv.appendChild(buttonDiv)
+    })
 
-		return
-	}
+    if (menu === 'styleBox') {
 
-	defaultHtml.forEach(function (innerhtml) {
+        for (var i = 0; i < styleHtml.length; i++) {
 
-		var buttonDiv = document.createElement('div')
-		buttonDiv.id = innerhtml
-		buttonDiv.style = style.ButtonDivStyle
-		buttonDiv.innerHTML = cmdMap[innerhtml]
+            if (styleHtml[i] === 'font') {
+                renderFont(toolEventBinder, editDiv)
+                continue
+            }
 
-		buttonDiv.onclick = function () {
-			toolEventBinder.buttonClick(innerhtml)
-		}
-		buttonBox.appendChild(buttonDiv)
-	})
+            if (styleHtml[i] === 'align') {
+                renderAlign(toolEventBinder, editDiv)
+                continue
+            }
 
-	if (menu === 'styleBox') {
+            if (styleHtml[i] === 'border') {
+                renderBorder(toolEventBinder, editDiv)
+                continue
+            }
 
-		for (var i = 0; i < styleHtml.length; i++) {
+            var styleButtonDiv = document.createElement('div')
+            styleButtonDiv.id = styleHtml[i]
+            styleButtonDiv.style = style.ButtonDivStyle
+            styleButtonDiv.innerHTML = cmdMap[styleHtml[i]]
 
-			if (styleHtml[i] === 'font') {
-				renderFont(toolEventBinder, buttonBox)
-				continue
-			}
+            editDiv.appendChild(styleButtonDiv)
 
-			if (styleHtml[i] === 'align') {
-				renderAlign(toolEventBinder, buttonBox)
-				continue
-			}
-
-			if (styleHtml[i] === 'border') {
-				renderBorder(toolEventBinder, buttonBox)
-				continue
-			}
-
-			var styleButtonDiv = document.createElement('div')
-			styleButtonDiv.id = styleHtml[i]
-			styleButtonDiv.style = style.ButtonDivStyle
-			styleButtonDiv.innerHTML = cmdMap[styleHtml[i]]
-
-			buttonBox.appendChild(styleButtonDiv)
-
-			if (styleHtml[i] === 'bold') {
-				toolEventBinder.initFontWeight(styleButtonDiv)
-				continue
-			}
-			if (styleHtml[i] === 'italic') {
-				toolEventBinder.initFontStyle(styleButtonDiv)
-				continue
-			}
-			if (styleHtml[i] === 'textColor') {
-				renderFontColor(toolEventBinder, styleButtonDiv)
-				renderColorSelect(toolEventBinder, buttonBox)
-				continue
-			}
-			if (styleHtml[i] === 'fillColor') {
-				renderBackgroundColor(toolEventBinder, styleButtonDiv)
-				renderColorSelect(toolEventBinder, buttonBox)
-				continue
-			}
+            if (styleHtml[i] === 'bold') {
+                toolEventBinder.initFontWeight(styleButtonDiv)
+                continue
+            }
+            if (styleHtml[i] === 'italic') {
+                toolEventBinder.initFontStyle(styleButtonDiv)
+                continue
+            }
+            if (styleHtml[i] === 'textColor') {
+                renderFontColor(toolEventBinder, styleButtonDiv)
+                renderColorSelect(toolEventBinder, editDiv)
+                continue
+            }
+            if (styleHtml[i] === 'fillColor') {
+                renderBackgroundColor(toolEventBinder, styleButtonDiv)
+                renderColorSelect(toolEventBinder, editDiv)
+                continue
+            }
 
 
-			styleButtonDiv.onclick = function (e) {
-				toolEventBinder.buttonClick(e.currentTarget.id)
-			}
-		}
-	} else if (menu === 'toolBox') {
+            styleButtonDiv.onclick = function (e) {
+                toolEventBinder.buttonClick(e.currentTarget.id)
+            }
+        }
+    } else if (menu === 'toolBox') {
 
-		for (var m = 0; m < toolHtml.length; m++) {
+        for (var m = 0; m < toolHtml.length; m++) {
 
-			var toolButtonDiv = document.createElement('div')
-			toolButtonDiv.id = toolHtml[m]
-			toolButtonDiv.style = style.ButtonDivStyle
-			toolButtonDiv.innerHTML = cmdMap[toolHtml[m]]
+            var toolButtonDiv = document.createElement('div')
+            toolButtonDiv.id = toolHtml[m]
+            toolButtonDiv.style = style.ButtonDivStyle
+            toolButtonDiv.innerHTML = cmdMap[toolHtml[m]]
 
-			buttonBox.appendChild(toolButtonDiv)
+            editDiv.appendChild(toolButtonDiv)
 
-			if (toolHtml[m] === 'mergeCell') {
-				toolEventBinder.initMerge(toolButtonDiv, true)
-				continue
-			}
+            if (toolHtml[m] === 'mergeCell') {
+                toolEventBinder.initMerge(toolButtonDiv, true)
+                continue
+            }
 
-			if (toolHtml[m] === 'splitCell') {
-				toolEventBinder.initMerge(toolButtonDiv, false)
-				continue
-			}
+            if (toolHtml[m] === 'splitCell') {
+                toolEventBinder.initMerge(toolButtonDiv, false)
+                continue
+            }
 
-			toolButtonDiv.onclick = function (e) {
-				toolEventBinder.buttonClick(e.currentTarget.id)
-			}
-		}
-	} else {
+            toolButtonDiv.onclick = function (e) {
+                toolEventBinder.buttonClick(e.currentTarget.id)
+            }
+        }
+    } else {
 
-		for (var n = 0; n < dataHtml.length; n++) {
+        for (var n = 0; n < dataHtml.length; n++) {
 
-			var dataButtonDiv = document.createElement('div')
-			dataButtonDiv.id = dataHtml[n]
-			dataButtonDiv.style = style.ButtonDivStyle
-			dataButtonDiv.style.fontSize = '15px'
-			dataButtonDiv.innerHTML = dataHtml[n]
+            var dataButtonDiv = document.createElement('div')
+            dataButtonDiv.id = dataHtml[n]
+            dataButtonDiv.style = style.ButtonDivStyle
+            dataButtonDiv.style.fontSize = '15px'
+            dataButtonDiv.innerHTML = dataHtml[n]
 
-			dataButtonDiv.onclick = function (e) {
-				console.log(e.currentTarget.id)
-				toolEventBinder.buttonClick(e.currentTarget.id)
-			}
-			buttonBox.appendChild(dataButtonDiv)
-		}
-	}
+            dataButtonDiv.onclick = function (e) {
+                console.log(e.currentTarget.id)
+                toolEventBinder.buttonClick(e.currentTarget.id)
+            }
+            editDiv.appendChild(dataButtonDiv)
+        }
+    }
+    editDiv.id = 'editDiv'
+    buttonBox.appendChild(editDiv)
 
 }
 
 function changeSelected(boxes, selectedNode) {
 
-	for (var box in boxes) {
-		boxes[box].selected = false
-	}
-	boxes[selectedNode].selected = true
+    for (var box in boxes) {
+        boxes[box].selected = false
+    }
+    boxes[selectedNode].selected = true
 
-	for (var b in boxes) {
-		if (boxes[b].selected) {
-			boxes[b].node.style = style.MeunBoxSelectedStyle
-		} else {
-			boxes[b].node.style = style.MeunBoxStyle
-		}
-	}
+    for (var b in boxes) {
+        if (boxes[b].selected) {
+            boxes[b].node.style = style.MeunBoxSelectedStyle
+        } else {
+            boxes[b].node.style = style.MeunBoxStyle
+        }
+    }
 }
 
 function renderFont(toolEventBinder, buttonBox) {
-	//字体
-	var fontFamilySelect = document.createElement('select')
-	fontFamilySelect.style.marginLeft = '10px'
-	var fontFamilyOption = ['fontFamily', 'Default', 'Custom', 'Verdana', 'Arial', 'Courier']
-	fontFamilyOption.forEach(function (o) {
-		var option = document.createElement('option')
-		option.innerHTML = o
-		fontFamilySelect.appendChild(option)
-	})
-	toolEventBinder.initFontFamily(fontFamilySelect)
-	buttonBox.appendChild(fontFamilySelect)
+    //字体
+    var fontFamilySelect = document.createElement('select')
+    fontFamilySelect.style.marginLeft = '10px'
+    var fontFamilyOption = ['fontFamily', 'Default', 'Custom', 'Verdana', 'Arial', 'Courier']
+    fontFamilyOption.forEach(function (o) {
+        var option = document.createElement('option')
+        option.innerHTML = o
+        fontFamilySelect.appendChild(option)
+    })
+    toolEventBinder.initFontFamily(fontFamilySelect)
+    buttonBox.appendChild(fontFamilySelect)
 
-	//字体大小
-	var fontSizeSelect = document.createElement('select')
-	fontSizeSelect.style.marginLeft = '10px'
-	var fontSizeOption = ['fontSize', 'Default', 'X-Small', 'Small', 'Medium', 'Large',
-		'X-Large', '6pt', '7pt', '8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt',
-		'20pt', '22pt', '24pt', '28pt', '36pt', '48pt', '72pt']
-	fontSizeOption.forEach(function (o) {
-		var option = document.createElement('option')
-		option.innerHTML = o
-		fontSizeSelect.appendChild(option)
-	})
-	toolEventBinder.initFontSize(fontSizeSelect)
-	buttonBox.appendChild(fontSizeSelect)
+    //字体大小
+    var fontSizeSelect = document.createElement('select')
+    fontSizeSelect.style.marginLeft = '10px'
+    var fontSizeOption = ['fontSize', 'Default', 'X-Small', 'Small', 'Medium', 'Large',
+        'X-Large', '6pt', '7pt', '8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt',
+        '20pt', '22pt', '24pt', '28pt', '36pt', '48pt', '72pt']
+    fontSizeOption.forEach(function (o) {
+        var option = document.createElement('option')
+        option.innerHTML = o
+        fontSizeSelect.appendChild(option)
+    })
+    toolEventBinder.initFontSize(fontSizeSelect)
+    buttonBox.appendChild(fontSizeSelect)
 }
 
 function renderBorder(toolEventBinder, buttonBox) {
-	var borderHtml = config.ToolConfig.borderHtml
-	var cmdMap = config.ToolConfig.cmdCodeMap
-	var borderButton = []
-	var i
+    var borderHtml = config.ToolConfig.borderHtml
+    var cmdMap = config.ToolConfig.cmdCodeMap
+    var borderButton = []
+    var i
 
-	for (i = 0; i < borderHtml.length; i++) {
-		var borderButtonDiv = document.createElement('div')
-		borderButtonDiv.id = borderHtml[i]
-		borderButtonDiv.style = style.ButtonDivStyle
-		borderButtonDiv.innerHTML = cmdMap[borderHtml[i]]
+    for (i = 0; i < borderHtml.length; i++) {
+        var borderButtonDiv = document.createElement('div')
+        borderButtonDiv.id = borderHtml[i]
+        borderButtonDiv.style = style.ButtonDivStyle
+        borderButtonDiv.innerHTML = cmdMap[borderHtml[i]]
 
-		buttonBox.appendChild(borderButtonDiv)
-		borderButton.push(borderButtonDiv)
-	}
+        buttonBox.appendChild(borderButtonDiv)
+        borderButton.push(borderButtonDiv)
+    }
 
-	for (i = 0; i < borderButton.length; i++) {
-		borderButton[i].onclick = function (e) {
-			for (var j = 0; j < borderButton.length; j++) {
-				borderButton[j].style = style.ButtonDivStyle
-			}
+    for (i = 0; i < borderButton.length; i++) {
+        borderButton[i].onclick = function (e) {
+            for (var j = 0; j < borderButton.length; j++) {
+                borderButton[j].style = style.ButtonDivStyle
+            }
 
-			var fontBorderOption = config.ToolConfig.fontBorderOption
-			toolEventBinder.initFontBorder(fontBorderOption[e.currentTarget.id])
+            var fontBorderOption = config.ToolConfig.fontBorderOption
+            toolEventBinder.initFontBorder(fontBorderOption[e.currentTarget.id])
 
-			e.currentTarget.style = style.ButtonDivSelectedStyle
-		}
-	}
+            e.currentTarget.style = style.ButtonDivSelectedStyle
+        }
+    }
 }
 
 function renderAlign(toolEventBinder, buttonBox) {
-	var alignHtml = config.ToolConfig.alignHtml
-	var cmdMap = config.ToolConfig.cmdCodeMap
-	var alignButton = []
-	var i
+    var alignHtml = config.ToolConfig.alignHtml
+    var cmdMap = config.ToolConfig.cmdCodeMap
+    var alignButton = []
+    var i
 
-	for (i = 0; i < alignHtml.length; i++) {
-		var alignButtonDiv = document.createElement('div')
-		alignButtonDiv.id = alignHtml[i]
-		alignButtonDiv.style = style.ButtonDivStyle
-		alignButtonDiv.innerHTML = cmdMap[alignHtml[i]]
+    for (i = 0; i < alignHtml.length; i++) {
+        var alignButtonDiv = document.createElement('div')
+        alignButtonDiv.id = alignHtml[i]
+        alignButtonDiv.style = style.ButtonDivStyle
+        alignButtonDiv.innerHTML = cmdMap[alignHtml[i]]
 
-		buttonBox.appendChild(alignButtonDiv)
-		alignButton.push(alignButtonDiv)
-	}
+        buttonBox.appendChild(alignButtonDiv)
+        alignButton.push(alignButtonDiv)
+    }
 
-	for (i = 0; i < alignButton.length; i++) {
-		alignButton[i].onclick = function (e) {
-			for (var j = 0; j < alignButton.length; j++) {
-				alignButton[j].style = style.ButtonDivStyle
-			}
+    for (i = 0; i < alignButton.length; i++) {
+        alignButton[i].onclick = function (e) {
+            for (var j = 0; j < alignButton.length; j++) {
+                alignButton[j].style = style.ButtonDivStyle
+            }
 
-			var alignOption = config.ToolConfig.alignOption
-			toolEventBinder.initTextAlign(alignOption[e.currentTarget.id])
+            var alignOption = config.ToolConfig.alignOption
+            toolEventBinder.initTextAlign(alignOption[e.currentTarget.id])
 
-			e.currentTarget.style = style.ButtonDivSelectedStyle
-		}
-	}
+            e.currentTarget.style = style.ButtonDivSelectedStyle
+        }
+    }
 }
 
 function renderFontColor(toolEventBinder, styleButtonDiv) {
-	//color,字体颜色
-	// var colorDiv = document.createElement('div')
-	// colorDiv.style = style.ColorDivStyle
-	// buttonBox.appendChild(colorDiv)
-	toolEventBinder.initColor(styleButtonDiv)
+    //color,字体颜色
+    // var colorDiv = document.createElement('div')
+    // colorDiv.style = style.ColorDivStyle
+    // buttonBox.appendChild(colorDiv)
+    toolEventBinder.initColor(styleButtonDiv)
 }
 
 function renderBackgroundColor(toolEventBinder, styleButtonDiv) {
 
-	//backgroundColor背景颜色
-	// var backgroundColorDiv = document.createElement('div')
-	// backgroundColorDiv.style = style.backgroundColorDivStyle
-	// buttonBox.appendChild(backgroundColorDiv)
-	toolEventBinder.initBackgroundColor(styleButtonDiv)
+    //backgroundColor背景颜色
+    // var backgroundColorDiv = document.createElement('div')
+    // backgroundColorDiv.style = style.backgroundColorDivStyle
+    // buttonBox.appendChild(backgroundColorDiv)
+    toolEventBinder.initBackgroundColor(styleButtonDiv)
 }
 
 function renderColorSelect(toolEventBinder, buttonBox) {
-	var colorSelectDiv = document.createElement("div")
-	colorSelectDiv.id = 'colorSelect'
-	colorSelectDiv.style = style.ColorSelectDivStyle
-	// colorSelectDiv.style.display = 'none'
-	// colorSelectDiv.style.position = "absolute"
-	// colorSelectDiv.style.zIndex = 100
-	// colorSelectDiv.style.backgroundColor = "#FFF"
-	// colorSelectDiv.style.border = "1px solid black"
-	// colorSelectDiv.style.width = '106px'
-	buttonBox.appendChild(colorSelectDiv)
+    var colorSelectDiv = document.createElement("div")
+    colorSelectDiv.id = 'colorSelect'
+    colorSelectDiv.style = style.ColorSelectDivStyle
+    // colorSelectDiv.style.display = 'none'
+    // colorSelectDiv.style.position = "absolute"
+    // colorSelectDiv.style.zIndex = 100
+    // colorSelectDiv.style.backgroundColor = "#FFF"
+    // colorSelectDiv.style.border = "1px solid black"
+    // colorSelectDiv.style.width = '106px'
+    buttonBox.appendChild(colorSelectDiv)
 
-	var mainDiv = document.createElement("div")
-	// mainDiv.style.padding = "3px"
-	// mainDiv.style.backgroundColor = "#CCC"
-	colorSelectDiv.appendChild(mainDiv)
+    var mainDiv = document.createElement("div")
+    // mainDiv.style.padding = "3px"
+    // mainDiv.style.backgroundColor = "#CCC"
+    colorSelectDiv.appendChild(mainDiv)
 
-	var mainTable = document.createElement("table")
-	mainTable.cellSpacing = 0
-	mainTable.cellPadding = 0
-	mainTable.style.width = "100px"
-	mainDiv.appendChild(mainTable)
+    var mainTable = document.createElement("table")
+    mainTable.cellSpacing = 0
+    mainTable.cellPadding = 0
+    mainTable.style.width = "100px"
+    mainDiv.appendChild(mainTable)
 
-	var mainTbody = document.createElement("tbody")
-	mainTable.appendChild(mainTbody)
-	var steps = [0, 68, 153, 204, 255]
-	var commonRgb = ["400", "310", "420", "440", "442", "340", "040", "042", "032", "044", "024", "004", "204", "314", "402", "414"]
+    var mainTbody = document.createElement("tbody")
+    mainTable.appendChild(mainTbody)
+    var steps = [0, 68, 153, 204, 255]
+    var commonRgb = ["400", "310", "420", "440", "442", "340", "040", "042", "032", "044", "024", "004", "204", "314", "402", "414"]
 
-	for (var row = 0; row < 16; row++) {
-		var tr = document.createElement("tr")
-		for (var col = 0; col < 5; col++) {
-			var td = document.createElement("td")
-			toolEventBinder.initColorSelect(td)
-			td.style.fontSize = "1px"
-			td.innerHTML = "&nbsp;"
-			td.style.height = "10px"
-			td.style.lineHeight = '12px'
-			if (col <= 1) {
-				td.style.width = "17px"
-				td.style.borderRight = "3px solid white"
-			}
-			else {
-				td.style.width = "20px"
-				td.style.backgroundRepeat = "no-repeat"
-			}
-			if (col === 0) {
-				var x = commonRgb[row]
-				td.style.backgroundColor = "rgb(" + steps[x.charAt(0) - 0] + "," + steps[x.charAt(1) - 0] + "," + steps[x.charAt(2) - 0] + ")"
-			}
-			if (col === 1) {
-				td.style.backgroundColor = makeRGB(17 * (15 - row), 17 * (15 - row), 17 * (15 - row))
-			}
-			if (col === 2) {
-				td.style.backgroundColor = makeRGB(17 * (15 - row), 0, 0)
-			}
-			if (col === 3) {
-				td.style.backgroundColor = makeRGB(0, 17 * (15 - row), 0)
-			}
-			if (col === 4) {
-				td.style.backgroundColor = makeRGB(0, 0, 17 * (15 - row))
-			}
-			tr.appendChild(td)
-		}
-		mainTbody.appendChild(tr)
-	}
-	mainTable.appendChild(mainTbody)
+    for (var row = 0; row < 16; row++) {
+        var tr = document.createElement("tr")
+        for (var col = 0; col < 5; col++) {
+            var td = document.createElement("td")
+            toolEventBinder.initColorSelect(td)
+            td.style.fontSize = "1px"
+            td.innerHTML = "&nbsp;"
+            td.style.height = "10px"
+            td.style.lineHeight = '12px'
+            if (col <= 1) {
+                td.style.width = "17px"
+                td.style.borderRight = "3px solid white"
+            }
+            else {
+                td.style.width = "20px"
+                td.style.backgroundRepeat = "no-repeat"
+            }
+            if (col === 0) {
+                var x = commonRgb[row]
+                td.style.backgroundColor = "rgb(" + steps[x.charAt(0) - 0] + "," + steps[x.charAt(1) - 0] + "," + steps[x.charAt(2) - 0] + ")"
+            }
+            if (col === 1) {
+                td.style.backgroundColor = makeRGB(17 * (15 - row), 17 * (15 - row), 17 * (15 - row))
+            }
+            if (col === 2) {
+                td.style.backgroundColor = makeRGB(17 * (15 - row), 0, 0)
+            }
+            if (col === 3) {
+                td.style.backgroundColor = makeRGB(0, 17 * (15 - row), 0)
+            }
+            if (col === 4) {
+                td.style.backgroundColor = makeRGB(0, 0, 17 * (15 - row))
+            }
+            tr.appendChild(td)
+        }
+        mainTbody.appendChild(tr)
+    }
+    mainTable.appendChild(mainTbody)
 }
 
 function makeRGB(r, g, b) {
-	return "rgb(" + (r > 0 ? r : 0) + "," + (g > 0 ? g : 0) + "," + (b > 0 ? b : 0) + ")"
+    return "rgb(" + (r > 0 ? r : 0) + "," + (g > 0 ? g : 0) + "," + (b > 0 ? b : 0) + ")"
 }
 
 function removeAllChild(node) {
 
-	while (node.hasChildNodes()) {
-		node.removeChild(node.firstChild)
-	}
+    while (node.hasChildNodes()) {
+        node.removeChild(node.firstChild)
+    }
 }
 
 module.exports.ToolRender = ToolRender
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports) {
 
 /**
@@ -3403,7 +3427,7 @@ UndoStack.prototype.unDo = function () {
 module.exports.UndoStack = UndoStack
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -3426,11 +3450,11 @@ WSRender.prototype.init = function () {
 	var WSDiv = document.createElement('div')
 	// WSDiv.style.width = ws.width + 'px'
 	// WSDiv.style.height = ws.height + 'px'
-	WSDiv.style = __webpack_require__(2).WSStyle
+	WSDiv.style = __webpack_require__(1).WSStyle
 	this.parNode.appendChild(WSDiv)
 
 	//tool
-	var ToolRenderModule = __webpack_require__(14)
+	var ToolRenderModule = __webpack_require__(15)
 	var ToolRender = ToolRenderModule.ToolRender
 	var toolRender = new ToolRender(ws.Sheet)
 	var tool = ws.Tool
@@ -3439,7 +3463,7 @@ WSRender.prototype.init = function () {
 	WSDiv.appendChild(toolDiv)
 
 	//sheet
-	var SheetRenderModule = __webpack_require__(5)
+	var SheetRenderModule = __webpack_require__(3)
 	var SheetRender = SheetRenderModule.SheetRender
 	var sheetRender = new SheetRender(ws.Sheet)
 	var sheet = ws.Sheet
@@ -3460,7 +3484,7 @@ WSRender.prototype.init = function () {
 module.exports.WSRender = WSRender
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
