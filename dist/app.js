@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "dist/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 7);
+/******/ 	return __webpack_require__(__webpack_require__.s = 8);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -140,6 +140,9 @@ var ToolConfig = {
 var SlideBarConfig = {
     toggleOpenIcon: 'open',
     toggleCloseIcon: 'close',
+	arrowIcon: 'arrow',
+
+    id: 'sliderBarDiv',
 
     iconHtmlMap: {
 		open: '&#xe3c7',
@@ -147,8 +150,47 @@ var SlideBarConfig = {
         arrow: '&#xe313'
     },
 
-    sliderPaneTitle: ['单元格属性','表格属性','数据源','数据集'],
-    arrowIcon: 'arrow'
+    sliderPaneTitle: ['单元格属性','表格属性', '公式','数据源','数据集'],
+    sliderPaneId: ['cellAttrPane', 'sheetAttrPane','funcPane', 'dataSrcPane', 'dataTarPane'],
+    sliderPaneConfig:{
+        cellAttr: {
+            title: '单元格属性',
+            paneId: 'cellAttrPane',
+            titleId: 'cellAttrTitle',
+            arrowId: 'cellAttrArrow',
+            contentId: 'cellAttrContent'
+        },
+		sheetAttr: {
+			title: '表格属性',
+			paneId: 'sheetAttrPane',
+			titleId: 'sheetAttrTitle',
+			arrowId: 'sheetAttrArrow',
+			contentId: 'sheetAttrContent'
+		},
+		func: {
+			title: '公式',
+			paneId: 'funcPane',
+			titleId: 'funcTitle',
+			arrowId: 'funcArrow',
+			contentId: 'funcContent'
+		},
+		dataSrc: {
+			title: '数据源',
+			paneId: 'dataSrcPane',
+			titleId: 'dataSrcTitle',
+			arrowId: 'dataSrcArrow',
+			contentId: 'dataSrcContent'
+		},
+		dataTar: {
+			title: '数据集',
+			paneId: 'dataTarPane',
+			titleId: 'dataTarTitle',
+			arrowId: 'dataTarArrow',
+			contentId: 'dataTarContent'
+		}
+    },
+
+    toggleId: 'toggleDiv'
 }
 
 /**
@@ -170,6 +212,10 @@ var SheetConfig = {
 
     rowNum: 200,
     colNum: 25
+}
+
+var SheetTableDivConfig = {
+    id: 'sheetTableDiv'
 }
 
 var CellPropConfig = {
@@ -279,6 +325,7 @@ module.exports.CellPropConfig = CellPropConfig
 module.exports.InputConfig = InputConfig
 module.exports.ClipBoardConfig = ClipBoardConfig
 module.exports.SlideBarConfig = SlideBarConfig
+module.exports.SheetTableDivConfig = SheetTableDivConfig
 
 
 /***/ }),
@@ -393,9 +440,9 @@ var PaneContentCloseStyle =
 	'transition: all 0.5s ease;'
 
 var PaneContentOpenStyle =
-	'height: 200px;' +
 	'width: 100%;' +
-	'min-height: 50px;' +
+	'height: auto;' +
+	'min-height: 200px;' +
 	'background-color: rgba(255,255,255,0.1);' +
 	'border-radius: 8px;' +
 	'transition: all 0.5s ease;'
@@ -411,11 +458,25 @@ var ArrowUpStyle =
 	'transform: rotate(180deg);' +
 	'transition: all 0.5s ease'
 
-var CellPropDivStyle =
-	'position: absolute;' +
-	'z-index: 100;' +
-	'background-color: #fff;' +
-	'border: 1px solid black;'
+var SliderTableStyle =
+	'width: 100%;' +
+	'border: none;'
+
+var SliderOddTrStyle =
+	'border: none;' +
+	'background-color: rgba(0,0,0,0.1);'
+
+var SliderEvenTrStyle=
+	'border: none;' +
+	'background-color: rgba(0,0,0,0);'
+
+var  SliderTdStyle =
+	'width: 50%;' +
+	'border: none;' +
+	'padding-left: 5px;' +
+	'color: whiteSmoke;' +
+	'font-size: 0.9em;' +
+	'line-height: 1.8em'
 
 var InputStyle =
 	'display: none;' +
@@ -539,7 +600,10 @@ module.exports.PaneContentOpenStyle = PaneContentOpenStyle
 module.exports.ArrowDownStyle = ArrowDownStyle
 module.exports.ArrowUpStyle = ArrowUpStyle
 
-module.exports.CellPropDivStyle = CellPropDivStyle
+module.exports.SliderTableStyle = SliderTableStyle
+module.exports.SliderOddTrStyle = SliderOddTrStyle
+module.exports.SliderEvenTrStyle = SliderEvenTrStyle
+module.exports.SliderTdStyle = SliderTdStyle
 
 module.exports.InputStyle = InputStyle
 
@@ -575,19 +639,221 @@ module.exports.SliderBarStyle = SliderBarStyle
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
+/**
+ * Created by Ian on 17/7/22.
+ */
+
+var style  = __webpack_require__(1)
+var config = __webpack_require__(0)
+
+var SliderBarRender = function (sheet, sheetDiv) {
+	this.sheet = sheet
+	this.sheetDiv = sheetDiv
+
+	// alert(this.sheetDiv)
+}
+
+SliderBarRender.prototype.init = function (sliderBarDiv, sheetTableDiv) {
+
+	var toggleDiv = document.createElement('div')
+	toggleDiv.id = config.SlideBarConfig.toggleId
+	toggleDiv.isOpen = false
+	this.sheetDiv.appendChild(toggleDiv)
+
+	renderBar(sliderBarDiv, sheetTableDiv, toggleDiv)
+	renderToggle(toggleDiv)
+
+	var sliderPaneConfig = config.SlideBarConfig.sliderPaneConfig
+	var sliderPanes = {}
+
+	for(var paneConfig in sliderPaneConfig){
+		var paneDiv = document.createElement('div')
+		paneDiv.style = style.PaneStyle
+
+		paneDiv.id = sliderPaneConfig[paneConfig].paneId
+		// paneDiv.config = paneConfig
+		sliderPanes[paneConfig] = paneDiv
+
+		sliderBarDiv.appendChild(paneDiv)
+	}
+	renderPanes(sliderPanes)
+
+	// var isOpen = this.isOpen
+	// var sheetDiv = this.sheetDiv
+
+	toggleDiv.onclick = function () {
+		toggleDiv.isOpen = !toggleDiv.isOpen
+
+		renderBar(sliderBarDiv, sheetTableDiv, toggleDiv)
+		renderToggle(toggleDiv)
+	}
+}
+
+function renderToggle(toggleDiv) {
+
+	var iconHtmlMap = config.SlideBarConfig.iconHtmlMap
+	var toggleOpenIcon = config.SlideBarConfig.toggleOpenIcon
+	var toggleCloseIcon = config.SlideBarConfig.toggleCloseIcon
+
+	var isOpen = toggleDiv.isOpen
+	// var toggleDiv = document.createElement('div')
+
+	if(isOpen){
+
+		toggleDiv.innerHTML = iconHtmlMap[toggleCloseIcon]
+		toggleDiv.style = style.ToggleDivOpenLeft + style.ToggleDivStyle
+
+		toggleDiv.onmouseover = function () {
+			toggleDiv.style = style.ToggleDivOpenLeft + style.ToggleDivHoverStyle
+		}
+
+		toggleDiv.onmouseout = function () {
+			toggleDiv.style = style.ToggleDivOpenLeft + style.ToggleDivStyle
+			// toggleDiv.style.left = '76%'
+		}
+	}else{
+
+		toggleDiv.innerHTML = iconHtmlMap[toggleOpenIcon]
+		toggleDiv.style = style.ToggleDivCloseLeft + style.ToggleDivStyle
+
+		toggleDiv.onmouseover = function () {
+			toggleDiv.style = style.ToggleDivCloseLeft + style.ToggleDivHoverStyle
+		}
+
+		toggleDiv.onmouseout = function () {
+			toggleDiv.style = style.ToggleDivCloseLeft + style.ToggleDivStyle
+		}
+	}
+
+	// console.log(sheet)
+	// sheetDiv.appendChild(toggleDiv)
+
+	setTimeout(function () {
+		toggleDiv.style.opacity = '0.5'
+	}, 5000)
+}
+
+function renderBar(sliderBarDiv, sheetTableDiv, toggleDiv) {
+
+	var isOpen = toggleDiv.isOpen
+
+	sliderBarDiv.style = style.SliderBarStyle
+
+	if(isOpen){
+		sheetTableDiv.style.width = '75%'
+		sliderBarDiv.style.width = '25%'
+	}else{
+		sheetTableDiv.style.width = '100%'
+		sliderBarDiv.style.width = '0'
+	}
+}
+
+function renderPanes(sliderPanes) {
+
+	var sliderPaneConfig = config.SlideBarConfig.sliderPaneConfig
+
+	for(var key in sliderPanes) {
+		var isOpen = false
+		var paneDiv = sliderPanes[key]
+		var paneConfig = key
+
+		var paneTitleDiv = document.createElement('div')
+		paneTitleDiv.innerHTML = sliderPaneConfig[paneConfig].title
+		paneTitleDiv.id = sliderPaneConfig[paneConfig].titleId
+		paneTitleDiv.style = style.PaneTitleStyle
+		paneTitleDiv.isOpen = isOpen
+
+		var arrowDiv = document.createElement('div')
+		arrowDiv.innerHTML = config.SlideBarConfig.iconHtmlMap[config.SlideBarConfig.arrowIcon]
+		arrowDiv.id = sliderPaneConfig[paneConfig].arrowId
+		paneTitleDiv.appendChild(arrowDiv)
+
+		var paneContentDiv = document.createElement('div')
+		paneContentDiv.id = sliderPaneConfig[paneConfig].contentId
+
+		renderPane(arrowDiv, paneContentDiv, isOpen)
+
+		//第一次写闭包！！！
+		paneTitleDiv.onclick = function (arrowDiv, paneContentDiv, paneTitleDiv) {
+			return function () {
+				paneTitleDiv.isOpen = !paneTitleDiv.isOpen
+				renderPane(arrowDiv, paneContentDiv, paneTitleDiv)
+			}
+		}(arrowDiv, paneContentDiv, paneTitleDiv)
+		// paneContentDiv.style = style.PaneContentOpenStyle
+
+
+		paneDiv.appendChild(paneTitleDiv)
+		paneDiv.appendChild(paneContentDiv)
+
+		// if(paneDiv.id === 'cellAttrPane'){
+		//
+		// }else if(paneDiv.id === 'sheetAttrPane'){
+		//
+		// }else if(paneDiv.id === 'funcPane'){
+		//
+		// }else if(paneDiv.id === 'dataSrcPane'){
+		//
+		// }else{
+		//
+		// }
+	}
+}
+
+function renderPane(arrowDiv, paneContentDiv, paneTitleDiv) {
+
+	var isOpen = paneTitleDiv.isOpen
+
+	if(isOpen){
+		paneContentDiv.style = style.PaneContentOpenStyle
+		arrowDiv.style = style.ArrowUpStyle
+
+		if(paneContentDiv.firstChild){
+			setTimeout(function () {paneContentDiv.firstChild.style.display = 'table'}, 200)
+		}
+	}else{
+		paneContentDiv.style = style.PaneContentCloseStyle
+		arrowDiv.style = style.ArrowDownStyle
+
+		if(paneContentDiv.firstChild){paneContentDiv.firstChild.style.display = 'none'}
+	}
+}
+
+// SliderBarRender.prototype
+//
+// function addFunc() {
+//
+// }
+
+module.exports.SliderBarRender = SliderBarRender
+
+module.exports.renderBar = renderBar
+
+module.exports.renderPane = renderPane
+
+module.exports.renderToggle = renderToggle
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
 //鼠标和键盘事件
 
 // var UtilModule=require('Util')
 // var Util=UtilModule.Util
 // var util=new Util()
 
-var SheetRenderModule = __webpack_require__(3)
+var config = __webpack_require__(0)
+
+var SheetRenderModule = __webpack_require__(4)
 var SheetRender = SheetRenderModule.SheetRender
+var SliderBarHandler = __webpack_require__(12).SliderBarHandler
 
 var SheetEventHandler = function (sheet) {
 
     this.sheet = sheet
     this.sheetRender = new SheetRender(sheet)
+	this.sliderBarHandler = new SliderBarHandler(sheet)
 }
 /**
  * 鼠标按下事件
@@ -603,11 +869,11 @@ SheetEventHandler.prototype.mouseDown = function (elementid) {
         this.sheet.lastCellid = this.sheet.firstCellid
     }
 
-        this.setCellBackgroundColor('#fff')
-        if (elementid) {
-            //setCellProp(element,this.sheet.cells[element.id])
-            this.sheet.firstCellid = elementid
-        }
+    this.setCellBackgroundColor('#fff')
+    if (elementid) {
+        //setCellProp(element,this.sheet.cells[element.id])
+        this.sheet.firstCellid = elementid
+    }
     document.getElementById('dragBar').style.display = 'none'
     this.sheet.isMouseDown = true
 }
@@ -628,7 +894,7 @@ SheetEventHandler.prototype.mouseMove = function (elementid) {
         //cellPropDiv.innerHTML=''
         this.sheet.lastCellid = elementid
         this.sheet.editCells = this.sheet.getColAndRow()
-        if(this.sheet.isDraging) this.setCellBackgroundColor('#f69')
+        if (this.sheet.isDraging) this.setCellBackgroundColor('#f69')
         else this.setCellBackgroundColor('#69f')
     }
 }
@@ -637,11 +903,11 @@ SheetEventHandler.prototype.mouseMove = function (elementid) {
  * @param element
  */
 SheetEventHandler.prototype.mouseUp = function (element) {
-    if(this.sheet.isDraging){
-        if(!this.sheet.cells[this.sheet.firstCellid]){
-            this.sheet.setAttr('content','')
-        }else{
-            this.sheet.setAttr('content',this.sheet.cells[this.sheet.firstCellid].content)
+    if (this.sheet.isDraging) {
+        if (!this.sheet.cells[this.sheet.firstCellid]) {
+            this.sheet.setAttr('content', '')
+        } else {
+            this.sheet.setAttr('content', this.sheet.cells[this.sheet.firstCellid].content)
         }
 
         this.sheet.render()
@@ -649,12 +915,15 @@ SheetEventHandler.prototype.mouseUp = function (element) {
     if (this.sheet.isMouseDown || this.sheet.isDraging) {
         if (element.id) {
             var dragBar = document.getElementById('dragBar')
-            dragBar.style.left = element.offsetLeft +  element.offsetWidth -8+ 'px'
-            dragBar.style.top = element.offsetTop +element.offsetHeight-8+ 'px'
+            dragBar.style.left = element.offsetLeft +element.offsetWidth-document.getElementById(config.SheetTableDivConfig.id).scrollLeft - 8 + 'px'
+            dragBar.style.top = element.offsetTop +element.offsetHeight -document.getElementById(config.SheetTableDivConfig.id).scrollTop  - 8 + 'px'
             dragBar.style.display = 'block'
             this.sheet.lastCellid = element.id
             this.sheet.editCells = this.sheet.getColAndRow()
             this.setCellBackgroundColor('#69f')
+
+			this.sliderBarHandler.autoOpen()
+			this.sliderBarHandler.addCellAttr()
 
         }
     }
@@ -675,9 +944,9 @@ SheetEventHandler.prototype.dblclick = function (element) {
         var input = document.getElementById('input')
         input.style.display = 'block'
         input.style.backgroundColor = '#efe'
-        input.style.left = element.offsetLeft + 'px'
-        input.style.top = element.offsetTop + 'px'
-        input.style.height = element.offsetHeight  + 'px'
+        input.style.left = element.offsetLeft -document.getElementById(config.SheetTableDivConfig.id).scrollLeft + 'px'
+        input.style.top = element.offsetTop -document.getElementById(config.SheetTableDivConfig.id).scrollTop+ 'px'
+        input.style.height = element.offsetHeight + 'px'
         input.style.width = element.offsetWidth + 'px'
         if (this.sheet.cells[element.id]) {
             input.value = this.sheet.cells[element.id].content
@@ -790,7 +1059,7 @@ SheetEventHandler.prototype.keyDown = function (event) {
                     this.sheet.isEditing = false
                     document.getElementById('input').blur()
                 }
-                if(row > 0){
+                if (row > 0) {
                     this.mouseDown(cellid)
                     this.mouseUp(document.getElementById(cellid))
                 }
@@ -954,10 +1223,35 @@ SheetEventHandler.prototype.multiLineBlur = function (text) {
     this.sheet.isMultiLineEditing = false
 }
 
+//获取元素的纵坐标
+
+function getTop(e) {
+
+    var offset = e.offsetTop;
+
+    if (e.offsetParent != null) offset += getTop(e.offsetParent);
+
+    return offset;
+
+}
+
+
+//获取元素的横坐标
+
+function getLeft(e) {
+
+    var offset = e.offsetLeft
+
+    if (e.offsetParent != null) offset += getLeft(e.offsetParent)
+
+    return offset
+
+}
+
 module.exports.SheetEventHandler = SheetEventHandler
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -966,7 +1260,7 @@ module.exports.SheetEventHandler = SheetEventHandler
 
 var config = __webpack_require__(0)
 var style = __webpack_require__(1)
-var SliderBarRender = __webpack_require__(12).SliderBarRender
+var SliderBarRender = __webpack_require__(2).SliderBarRender
 // config.CellConfig
 var SheetRender = function (sheet) {
 	this.sheet=sheet
@@ -978,14 +1272,17 @@ SheetRender.prototype.init = function (sheetDiv) {
 
 	var sheetTableDiv = document.createElement('div')
 	sheetTableDiv.style = style.SheetTableDivStyle
+	sheetTableDiv.id = config.SheetTableDivConfig.id
 
 	var sheetTable = document.createElement('table')
     sheetTable.style = style.SheetTableStyle
 	sheetTable.cellSpacing = '10px'
 
 	var sliderBarDiv = document.createElement('div')
+	sliderBarDiv.id = config.SlideBarConfig.id
 	var sliderBarRender = new SliderBarRender(this.sheet, sheetDiv)
 	sliderBarRender.init(sliderBarDiv, sheetTableDiv)
+
 	//sheetTable.cellSpacing = '10px'//
 	sheetTable.id = 'sheetTable'
     sheetDiv.appendChild(sheetTable)
@@ -1068,7 +1365,7 @@ SheetRender.prototype.renderSheet = function(sheet, sheetTable) {
         }
     }
 
-    var SheetEventBinderModule = __webpack_require__(10)
+    var SheetEventBinderModule = __webpack_require__(11)
     var SheetEventBinder = SheetEventBinderModule.SheetEventBinder
     var sheetEventBinder = new SheetEventBinder(sheet)
 
@@ -1155,7 +1452,7 @@ SheetRender.prototype.renderSheet = function(sheet, sheetTable) {
 module.exports.SheetRender = SheetRender
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -1196,7 +1493,7 @@ var Cell = function (coord) {
 	this.coord = coord
 
 	this.content = ''
-	this.value = null
+	// this.value = null
 
 	this.show = true
 
@@ -1210,7 +1507,7 @@ var Cell = function (coord) {
 module.exports.Cell = Cell
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -1221,7 +1518,7 @@ var ToolEventHandlerModule = __webpack_require__(14)
 var ToolEventHandler = ToolEventHandlerModule.ToolEventHandler
 var toolEventHandler = null
 
-var SheetEventHandlerModule = __webpack_require__(2)
+var SheetEventHandlerModule = __webpack_require__(3)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
@@ -1394,7 +1691,7 @@ ToolEventBinder.prototype.initFileInput = function (fileInput) {
 module.exports.ToolEventBinder = ToolEventBinder
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -1418,12 +1715,12 @@ WSManager.prototype.init = function (parentNode) {
 	var undoStack = new UndoStack()
 
 	//实例化初始化Sheet对象
-	var SheetModule = __webpack_require__(9)
+	var SheetModule = __webpack_require__(10)
 	var Sheet = SheetModule.Sheet
 	var sheet = new Sheet(undoStack)
 
-	//实例化初始化SliderBar对象
-	var SliderBarModule = __webpack_require__(11)
+	// //实例化初始化SliderBar对象
+	// var SliderBarModule = require('component/SliderBarHandler')
 
 	//实例化初始化Workspace对象
 	var WorkspaceModule = __webpack_require__(18)
@@ -1446,14 +1743,14 @@ WSManager.prototype.init = function (parentNode) {
 module.exports.WSManager = WSManager
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  * Created by Ian on 17/6/5.
  */
 
-var WSManagerModule = __webpack_require__(6)
+var WSManagerModule = __webpack_require__(7)
 var WSManager = WSManagerModule.WSManager
 var wsManager=new WSManager()
 
@@ -1475,7 +1772,7 @@ function GetQueryString(name){
 wsManager.init(parentNode)
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var config = __webpack_require__(0)
@@ -1484,7 +1781,7 @@ var config = __webpack_require__(0)
 // var Util=UtilModule.Util
 // var util=new Util()
 
-var CellModule = __webpack_require__(4)
+var CellModule = __webpack_require__(5)
 var Cell = CellModule.Cell
 
 var CellRender = function (sheet) {
@@ -1646,7 +1943,7 @@ CellRender.prototype.renderCell = function (id, cmd, value) {
 module.exports.CellRender = CellRender
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -1655,13 +1952,13 @@ module.exports.CellRender = CellRender
 
 
 var configModule = __webpack_require__(0)
-var CellModule = __webpack_require__(4)
+var CellModule = __webpack_require__(5)
 var Cell = CellModule.Cell
 var sheetConfig = configModule.SheetConfig
 // var UtilModule = require('Util')
 // var Util = UtilModule.Util
 // var util = new Util()
-var CellRenderModule = __webpack_require__(8)
+var CellRenderModule = __webpack_require__(9)
 var CellRender = CellRenderModule.CellRender
 //var cellRender = new CellRender
 var Sheet = function (UndoStack) {
@@ -2059,11 +2356,11 @@ getRectangle = function (cells, sheet) {
 module.exports.Sheet = Sheet
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 //事件绑定对象
-var SheetEventHandlerModule = __webpack_require__(2)
+var SheetEventHandlerModule = __webpack_require__(3)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
@@ -2123,15 +2420,6 @@ SheetEventBinder.prototype.initDragBar = function (dragBar) {
 module.exports.SheetEventBinder = SheetEventBinder
 
 /***/ }),
-/* 11 */
-/***/ (function(module, exports) {
-
-/**
- * Created by Ian on 17/7/22.
- */
-
-
-/***/ }),
 /* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2139,149 +2427,92 @@ module.exports.SheetEventBinder = SheetEventBinder
  * Created by Ian on 17/7/22.
  */
 
-var style  = __webpack_require__(1)
+
 var config = __webpack_require__(0)
+var style = __webpack_require__(1)
+var renderPane = __webpack_require__(2).renderPane
+var renderBar = __webpack_require__(2).renderBar
+var renderToggle = __webpack_require__(2).renderToggle
 
-var SliderBarRender = function (sheet, sheetDiv) {
+var SliderBarHandler = function (sheet) {
 	this.sheet = sheet
-	this.sheetDiv = sheetDiv
-	this.isOpen = false
-
-	// alert(this.sheetDiv)
 }
 
-SliderBarRender.prototype.init = function (sliderBarDiv, sheetTableDiv) {
+SliderBarHandler.prototype.autoOpen = function () {
+	var sheet = this.sheet
+	var cell = sheet.cells[sheet.firstCellid]
 
-	var toggleDiv = document.createElement('div')
-
-	renderBar(sliderBarDiv, sheetTableDiv)
-	renderToggle(this.sheetDiv, toggleDiv)
-
-	var sliderPaneTitles = config.SlideBarConfig.sliderPaneTitle
-	var sliderPanes = {}
-
-	for(var paneTitle in sliderPaneTitles){
-		var paneDiv = document.createElement('div')
-		paneDiv.style = style.PaneStyle
-		sliderPanes[sliderPaneTitles[paneTitle]] = paneDiv
-
-		sliderBarDiv.appendChild(paneDiv)
+	if ((sheet.firstCellid !== sheet.lastCellid) || !cell) {
+		return
 	}
-	renderPanes(sliderPanes)
 
-	var isOpen = this.isOpen
-	var sheetDiv = this.sheetDiv
+	var sliderBarDiv = document.getElementById(config.SlideBarConfig.id)
+	var sheetTableDiv = document.getElementById(config.SheetTableDivConfig.id)
+	var toggleDiv = document.getElementById(config.SlideBarConfig.toggleId)
 
-	toggleDiv.onclick = function () {
-		isOpen = !isOpen
+	toggleDiv.isOpen = true
 
-		renderBar(sliderBarDiv, sheetTableDiv, isOpen)
-		renderToggle(sheetDiv, toggleDiv, isOpen)
-	}
+	renderBar(sliderBarDiv, sheetTableDiv, toggleDiv)
+	renderToggle(toggleDiv)
 }
 
-function renderToggle(sheetDiv, toggleDiv, isOpen) {
-	var iconHtmlMap = config.SlideBarConfig.iconHtmlMap
-	var toggleOpenIcon = config.SlideBarConfig.toggleOpenIcon
-	var toggleCloseIcon = config.SlideBarConfig.toggleCloseIcon
+SliderBarHandler.prototype.addCellAttr = function () {
+	var sheet = this.sheet
+	var cell = sheet.cells[sheet.firstCellid]
 
-	// var toggleDiv = document.createElement('div')
+	if ((sheet.firstCellid !== sheet.lastCellid) || !cell) {
+		return
+	}
 
-	if(isOpen){
+	// var paneDiv = document.getElementById(config.SlideBarConfig.sliderPaneConfig.cellAttr.paneId)
+	var titleDiv = document.getElementById(config.SlideBarConfig.sliderPaneConfig.cellAttr.titleId)
+	var arrowDiv = document.getElementById(config.SlideBarConfig.sliderPaneConfig.cellAttr.arrowId)
+	var contentDiv = document.getElementById(config.SlideBarConfig.sliderPaneConfig.cellAttr.contentId)
 
-		toggleDiv.innerHTML = iconHtmlMap[toggleCloseIcon]
-		toggleDiv.style = style.ToggleDivOpenLeft + style.ToggleDivStyle
+	titleDiv.isOpen = true
 
-		toggleDiv.onmouseover = function () {
-			toggleDiv.style = style.ToggleDivOpenLeft + style.ToggleDivHoverStyle
+	renderPane(arrowDiv, contentDiv, titleDiv)
+
+	removeAllChild(contentDiv)
+
+	var cellAttrTable = document.createElement('table')
+	cellAttrTable.style = style.SliderTableStyle
+	contentDiv.appendChild(cellAttrTable)
+
+	var i = 0
+
+	for (var attr in cell) {
+
+		if(cell[attr] == false){continue}
+
+		var attrTr = document.createElement('tr')
+		cellAttrTable.appendChild(attrTr)
+
+		i++
+		if(i%2 === 1){
+			attrTr.style = style.SliderEvenTrStyle
+		}else{
+			attrTr.style = style.SliderOddTrStyle
 		}
 
-		toggleDiv.onmouseout = function () {
-			toggleDiv.style = style.ToggleDivOpenLeft + style.ToggleDivStyle
-			// toggleDiv.style.left = '76%'
-		}
-	}else{
-
-		toggleDiv.innerHTML = iconHtmlMap[toggleOpenIcon]
-		toggleDiv.style = style.ToggleDivCloseLeft + style.ToggleDivStyle
-
-		toggleDiv.onmouseover = function () {
-			toggleDiv.style = style.ToggleDivCloseLeft + style.ToggleDivHoverStyle
-		}
-
-		toggleDiv.onmouseout = function () {
-			toggleDiv.style = style.ToggleDivCloseLeft + style.ToggleDivStyle
-		}
-	}
-
-	// console.log(sheet)
-	sheetDiv.appendChild(toggleDiv)
-
-	setTimeout(function () {
-		toggleDiv.style.opacity = '0.5'
-	}, 5000)
-}
-
-function renderBar(sliderBarDiv, sheetTableDiv, isOpen) {
-
-	sliderBarDiv.style = style.SliderBarStyle
-
-	if(isOpen){
-		sheetTableDiv.style.width = '75%'
-		sliderBarDiv.style.width = '25%'
-	}else{
-		sheetTableDiv.style.width = '100%'
-		sliderBarDiv.style.width = '0'
+		var attrTd = document.createElement('td')
+		attrTd.innerHTML = attr
+		attrTd.style = style.SliderTdStyle
+		var valueTd = document.createElement('td')
+		valueTd.innerHTML = cell[attr]
+		valueTd.style = style.SliderTdStyle
+		attrTr.appendChild(attrTd)
+		attrTr.appendChild(valueTd)
 	}
 }
 
-function renderPanes(sliderPanes) {
+function removeAllChild(node) {
 
-	for(var div in sliderPanes) {
-		var isOpen = false
-		var paneDiv = sliderPanes[div]
-		var paneTitle = div
-
-		var paneTitleDiv = document.createElement('div')
-		paneTitleDiv.innerHTML = paneTitle
-		paneTitleDiv.style = style.PaneTitleStyle
-
-		var arrowDiv = document.createElement('div')
-		arrowDiv.innerHTML = config.SlideBarConfig.iconHtmlMap[config.SlideBarConfig.arrowIcon]
-		paneTitleDiv.appendChild(arrowDiv)
-
-		var paneContentDiv = document.createElement('div')
-
-		renderPane(arrowDiv, paneContentDiv, isOpen)
-
-		//第一次写闭包！！！
-		paneTitleDiv.onclick = function (arrowDiv, paneContentDiv, isOpen) {
-			return function () {
-				isOpen = !isOpen
-				renderPane(arrowDiv, paneContentDiv, isOpen)
-			}
-		}(arrowDiv, paneContentDiv, isOpen)
-		// paneContentDiv.style = style.PaneContentOpenStyle
-
-
-		paneDiv.appendChild(paneTitleDiv)
-		paneDiv.appendChild(paneContentDiv)
+	while (node.hasChildNodes()) {
+		node.removeChild(node.firstChild)
 	}
 }
-
-function renderPane(arrowDiv, paneContentDiv, isOpen) {
-
-	if(isOpen){
-		paneContentDiv.style = style.PaneContentOpenStyle
-		arrowDiv.style = style.ArrowUpStyle
-	}else{
-		paneContentDiv.style = style.PaneContentCloseStyle
-		arrowDiv.style = style.ArrowDownStyle
-	}
-}
-
-
-module.exports.SliderBarRender = SliderBarRender
+module.exports.SliderBarHandler = SliderBarHandler
 
 /***/ }),
 /* 13 */
@@ -2311,14 +2542,14 @@ module.exports.Tool = Tool
 var config = __webpack_require__(0)
 
 
-var SheetRenderModule = __webpack_require__(3)
+var SheetRenderModule = __webpack_require__(4)
 var SheetRender = SheetRenderModule.SheetRender
 var sheetRender = null
 // var CellRenderModule = require('CellRender')
 // var CellRender = CellRenderModule.CellRender
 // var cellRender = null
 
-var SheetEventHandlerModule = __webpack_require__(2)
+var SheetEventHandlerModule = __webpack_require__(3)
 var SheetEventHandler = SheetEventHandlerModule.SheetEventHandler
 var sheetEventHandler = null
 
@@ -2372,7 +2603,8 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                         alert("请升级至最新版本的浏览器")
                     }
                     if (ajax !== null) {
-                        ajax.open("POST", "https://123.56.22.114:8080/qianmo-service/changeContent", true)
+                        ajax.open("POST", "http://123.56.22.114:8080/qianmo-service/changeContent", true)
+                        // ajax.open("POST", "http://localhost:8088/qianmo-service/changeContent", true)
                         needEditCells = JSON.stringify(needEditCells)
                         ajax.send(needEditCells)
                         ajax.onreadystatechange = function () {
@@ -2494,7 +2726,8 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 alert("请升级至最新版本的浏览器")
             }
             if(ajax !=null){
-                ajax.open("POST","https://123.56.22.114:8080/qianmo-service/excelDownload",true)
+                ajax.open("POST","http://123.56.22.114:8080/qianmo-service/excelDownload",true)
+                // ajax.open("POST","http://localhost:8088/qianmo-service/excelDownload",true)
                 ajax.onload=function(){
                     if(ajax.status==200){
                         var filename = "";
@@ -2548,7 +2781,8 @@ ToolEventHandler.prototype.buttonClick = function (action, value) {
                 param=null
             }else{
                 method="POST"
-                url='https://123.56.22.114:8080/qianmo-service/getContentJson'
+                url='http://123.56.22.114:8080/qianmo-service/getContentJson'
+                // url='http://localhost:8088/qianmo-service/getContentJson'
                 param=param.substring(param.lastIndexOf("\\")+1)
             }
             var ajax
@@ -2975,7 +3209,7 @@ var ToolRender = function (sheet) {
     this.sheet = sheet
 }
 ToolRender.prototype.init = function (toolDiv, width, height) {
-    var ToolEventBinderModule = __webpack_require__(5)
+    var ToolEventBinderModule = __webpack_require__(6)
     var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
     // var toolEventBinder = new ToolEventBinder(this.sheet)
 
@@ -3044,7 +3278,7 @@ function renderTool(menu, buttonBox, sheet) {
 
     removeAllChild(buttonBox)
 
-    var ToolEventBinderModule = __webpack_require__(5)
+    var ToolEventBinderModule = __webpack_require__(6)
     var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
     var toolEventBinder = new ToolEventBinder(sheet)
 
@@ -3463,7 +3697,7 @@ WSRender.prototype.init = function () {
 	WSDiv.appendChild(toolDiv)
 
 	//sheet
-	var SheetRenderModule = __webpack_require__(3)
+	var SheetRenderModule = __webpack_require__(4)
 	var SheetRender = SheetRenderModule.SheetRender
 	var sheetRender = new SheetRender(ws.Sheet)
 	var sheet = ws.Sheet
