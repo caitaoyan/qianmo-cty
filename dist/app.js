@@ -390,7 +390,7 @@ var ToggleDivOpenLeft = 'left: 76%;'
 
 var ToggleDivStyle =
 	'position: fixed;' +
-	'bottom: 20px;' +
+	'bottom: 5%;' +
 	'background-color: gray;' +
 	'width: 40px;' +
 	'height: 40px;' +
@@ -405,7 +405,7 @@ var ToggleDivStyle =
 
 var ToggleDivHoverStyle =
 	'position: fixed;' +
-	'bottom: 20px;' +
+	'bottom: 5%;' +
 	'background-color: white;' +
 	'width: 40px;' +
 	'height: 40px;' +
@@ -525,8 +525,9 @@ var ButtonBoxStyle =
 	'height: 63%;' +
 	'width: 100%;' +
 	'background-color: #ddd;' +
-	'line-height: 50px' +
-	'min-height: 50px;'
+	'line-height: 50px;' +
+	'min-height: 50px;' +
+	'overflow:auto;'
 
 var ButtonDivStyle =
 	'display: inline-block;' +
@@ -785,18 +786,6 @@ function renderPanes(sliderPanes) {
 
 		paneDiv.appendChild(paneTitleDiv)
 		paneDiv.appendChild(paneContentDiv)
-
-		// if(paneDiv.id === 'cellAttrPane'){
-		//
-		// }else if(paneDiv.id === 'sheetAttrPane'){
-		//
-		// }else if(paneDiv.id === 'funcPane'){
-		//
-		// }else if(paneDiv.id === 'dataSrcPane'){
-		//
-		// }else{
-		//
-		// }
 	}
 }
 
@@ -2506,12 +2495,21 @@ SliderBarHandler.prototype.addCellAttr = function () {
 	}
 }
 
+SliderBarHandler.prototype.addSheetAttr = function () {
+	var sheet = this.sheet
+	var contentDiv = document.getElementById(config.SlideBarConfig.sliderPaneConfig.sheetAttr.contentId)
+
+
+	console.log(sheet)
+}
+
 function removeAllChild(node) {
 
 	while (node.hasChildNodes()) {
 		node.removeChild(node.firstChild)
 	}
 }
+
 module.exports.SliderBarHandler = SliderBarHandler
 
 /***/ }),
@@ -3213,8 +3211,8 @@ ToolRender.prototype.init = function (toolDiv, width, height) {
     var ToolEventBinder = ToolEventBinderModule.ToolEventBinder
     // var toolEventBinder = new ToolEventBinder(this.sheet)
 
-    toolDiv.style.width = width + 'px'
-    toolDiv.style.height = height + 'px'
+    toolDiv.style.width = width
+    toolDiv.style.height = height
 
     renderMenu(toolDiv, this.sheet)
 
